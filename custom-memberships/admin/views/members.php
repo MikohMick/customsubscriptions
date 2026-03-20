@@ -178,7 +178,10 @@ $packages = CM_Packages::get_all();
                         <option value="">— <?php esc_html_e( 'Select package', 'custom-memberships' ); ?> —</option>
                         <?php foreach ( $packages as $pkg ) : ?>
                             <option value="<?php echo (int) $pkg->id; ?>">
-                                <?php echo esc_html( $pkg->name . ' (' . CM_Packages::sessions_label( $pkg->sessions ) . ' — ' . wc_price( $pkg->price ) . ')' ); ?>
+                                <?php
+                                $price_text = get_woocommerce_currency_symbol() . number_format( (float) $pkg->price, 2 );
+                                echo esc_html( $pkg->name . ' (' . CM_Packages::sessions_label( $pkg->sessions ) . ' — ' . $price_text . ')' );
+                                ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

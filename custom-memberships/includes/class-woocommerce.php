@@ -85,49 +85,48 @@ class CM_WooCommerce {
             return $fields;
         }
 
-        // Force these fields to readonly via custom class so the user sees them
-        // but they're already filled from the membership form.
-        if ( ! empty( $data['name'] ) ) {
-            $parts = explode( ' ', trim( $data['name'] ), 2 );
-            if ( isset( $fields['billing']['billing_first_name'] ) ) {
-                $fields['billing']['billing_first_name']['default'] = $parts[0];
+        $parts = ! empty( $data['name'] ) ? explode( ' ', trim( $data['name'] ), 2 ) : [];
+
+        $map = [
+            'billing_first_name' => $parts[0] ?? '',
+            'billing_last_name'  => $parts[1] ?? '',
+            'billing_email'      => $data['email']    ?? '',
+            'billing_phone'      => $data['phone']    ?? '',
+            'billing_city'       => $data['location'] ?? '',
+            'billing_address_1'  => $data['location'] ?? '',
+        ];
+
+        foreach ( $map as $field => $val ) {
+            if ( $val && isset( $fields['billing'][ $field ] ) ) {
+                $fields['billing'][ $field ]['default'] = $val;
             }
-            if ( isset( $fields['billing']['billing_last_name'] ) ) {
-                $fields['billing']['billing_last_name']['default'] = $parts[1] ?? '';
-            }
-        }
-        if ( ! empty( $data['email'] ) && isset( $fields['billing']['billing_email'] ) ) {
-            $fields['billing']['billing_email']['default'] = $data['email'];
-        }
-        if ( ! empty( $data['phone'] ) && isset( $fields['billing']['billing_phone'] ) ) {
-            $fields['billing']['billing_phone']['default'] = $data['phone'];
         }
 
         return $fields;
     }
 
     public static function get_checkout_field_value( $value, $key ) {
-        if ( $value ) {
-            return $value;
-        }
         $data = WC()->session ? WC()->session->get( 'cm_member_data' ) : null;
         if ( ! $data ) {
             return $value;
         }
+
+        $parts = ! empty( $data['name'] ) ? explode( ' ', trim( $data['name'] ), 2 ) : [];
+
+        // Our session data takes priority — user already filled the membership form.
         $map = [
-            'billing_email' => 'email',
-            'billing_phone' => 'phone',
+            'billing_first_name' => $parts[0] ?? '',
+            'billing_last_name'  => $parts[1] ?? '',
+            'billing_email'      => $data['email']    ?? '',
+            'billing_phone'      => $data['phone']    ?? '',
+            'billing_city'       => $data['location'] ?? '',
+            'billing_address_1'  => $data['location'] ?? '',
         ];
-        if ( isset( $map[ $key ] ) && ! empty( $data[ $map[ $key ] ] ) ) {
-            return $data[ $map[ $key ] ];
+
+        if ( isset( $map[ $key ] ) && $map[ $key ] !== '' ) {
+            return $map[ $key ];
         }
-        if ( $key === 'billing_first_name' && ! empty( $data['name'] ) ) {
-            return explode( ' ', trim( $data['name'] ), 2 )[0];
-        }
-        if ( $key === 'billing_last_name' && ! empty( $data['name'] ) ) {
-            $p = explode( ' ', trim( $data['name'] ), 2 );
-            return $p[1] ?? '';
-        }
+
         return $value;
     }
 
