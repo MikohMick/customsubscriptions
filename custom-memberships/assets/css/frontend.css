@@ -1,0 +1,311 @@
+/*
+ * Custom Memberships — Frontend Form Styles
+ * Inherits site/Elementor CSS custom properties where available.
+ */
+
+/* ── CSS variable bridge ────────────────────────────────────────── */
+.cm-form-wrap {
+  /* Fallbacks reference Elementor globals; site themes may override these. */
+  --cm-accent:        var(--e-global-color-accent,       var(--wp--preset--color--primary,       #c0555a));
+  --cm-accent-dark:   var(--e-global-color-secondary,    var(--wp--preset--color--secondary,     #2d5a27));
+  --cm-text:          var(--e-global-color-text,         var(--wp--preset--color--foreground,    #333333));
+  --cm-text-light:    #666;
+  --cm-bg:            var(--e-global-color-background,   var(--wp--preset--color--background,    #ffffff));
+  --cm-border:        #ddd;
+  --cm-radius:        6px;
+  --cm-shadow:        0 2px 12px rgba(0,0,0,.08);
+  --cm-font:          var(--e-global-typography-text-font-family, inherit);
+  --cm-transition:    0.2s ease;
+}
+
+/* ── Wrapper ────────────────────────────────────────────────────── */
+.cm-form-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  font-family: var(--cm-font);
+  color: var(--cm-text);
+}
+
+.cm-form-title {
+  margin: 0 0 6px;
+  font-size: 1.75rem;
+  color: var(--cm-accent-dark);
+}
+
+.cm-form-subtitle {
+  margin: 0 0 24px;
+  color: var(--cm-text-light);
+}
+
+/* ── Step indicator ─────────────────────────────────────────────── */
+.cm-steps {
+  display: flex;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.cm-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: .45;
+  transition: opacity var(--cm-transition);
+}
+.cm-step--active { opacity: 1; }
+
+.cm-step__number {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--cm-accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.cm-step--active .cm-step__number {
+  background: var(--cm-accent-dark);
+}
+
+.cm-step__label {
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+.cm-step-connector {
+  flex: 1;
+  height: 2px;
+  background: var(--cm-border);
+  margin: 0 12px;
+}
+
+/* ── Notices ────────────────────────────────────────────────────── */
+.cm-notices {
+  margin-bottom: 16px;
+}
+
+.cm-notice {
+  padding: 12px 16px;
+  border-radius: var(--cm-radius);
+  margin-bottom: 12px;
+  font-size: .9rem;
+}
+.cm-notice--error   { background: #fff0f0; border-left: 4px solid #c0555a; color: #7a1a1a; }
+.cm-notice--success { background: #f0fff4; border-left: 4px solid #2d5a27; color: #1a4a1a; }
+.cm-notice--info    { background: #f0f7ff; border-left: 4px solid #3b82f6; color: #1a3a5a; }
+.cm-notice--warning { background: #fffbeb; border-left: 4px solid #f59e0b; color: #5a3d00; }
+
+/* ── Panels ─────────────────────────────────────────────────────── */
+.cm-panel { display: none; }
+.cm-panel--active { display: block; }
+
+/* ── Fields ─────────────────────────────────────────────────────── */
+.cm-field {
+  margin-bottom: 20px;
+}
+
+.cm-field label {
+  display: block;
+  font-size: .875rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--cm-text);
+}
+
+.cm-required { color: var(--cm-accent); margin-left: 2px; }
+
+.cm-field input[type="text"],
+.cm-field input[type="email"],
+.cm-field input[type="tel"] {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  border: 1.5px solid var(--cm-border);
+  border-radius: var(--cm-radius);
+  font-size: 1rem;
+  font-family: var(--cm-font);
+  color: var(--cm-text);
+  background: var(--cm-bg);
+  transition: border-color var(--cm-transition), box-shadow var(--cm-transition);
+}
+
+.cm-field input:focus {
+  outline: none;
+  border-color: var(--cm-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cm-accent) 15%, transparent);
+}
+
+.cm-field input.cm-field--error { border-color: #c0555a; }
+
+.cm-field__error {
+  display: block;
+  font-size: .8rem;
+  color: #c0555a;
+  margin-top: 4px;
+}
+
+.cm-field__hint {
+  display: block;
+  font-size: .8rem;
+  color: var(--cm-text-light);
+  margin-top: 4px;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.cm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 100px;
+  font-size: .9rem;
+  font-family: var(--cm-font);
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--cm-transition), transform var(--cm-transition), opacity var(--cm-transition);
+}
+
+.cm-btn--primary {
+  background: var(--cm-accent-dark);
+  color: #fff;
+}
+.cm-btn--primary:hover { background: color-mix(in srgb, var(--cm-accent-dark) 85%, #000); }
+.cm-btn--primary:active { transform: scale(.98); }
+.cm-btn--primary:disabled { opacity: .5; cursor: not-allowed; }
+
+.cm-btn--ghost {
+  background: transparent;
+  color: var(--cm-text);
+  border: 1.5px solid var(--cm-border);
+}
+.cm-btn--ghost:hover { border-color: var(--cm-text); }
+
+.cm-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+.cm-actions--split { justify-content: space-between; }
+
+/* ── Plan cards ─────────────────────────────────────────────────── */
+.cm-plans-intro {
+  margin: 0 0 16px;
+  font-size: .9rem;
+  color: var(--cm-text-light);
+}
+
+.cm-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.cm-plan {
+  cursor: pointer;
+}
+
+.cm-plan input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.cm-plan__inner {
+  border: 2px solid var(--cm-border);
+  border-radius: var(--cm-radius);
+  padding: 20px;
+  transition: border-color var(--cm-transition), box-shadow var(--cm-transition), transform var(--cm-transition);
+  background: var(--cm-bg);
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.cm-plan input:checked + .cm-plan__inner,
+.cm-plan:hover .cm-plan__inner {
+  border-color: var(--cm-accent-dark);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cm-accent-dark) 12%, transparent);
+}
+
+.cm-plan input:checked + .cm-plan__inner {
+  background: color-mix(in srgb, var(--cm-accent-dark) 5%, white);
+}
+
+.cm-plan:hover .cm-plan__inner {
+  transform: translateY(-2px);
+}
+
+.cm-plan__header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.cm-plan__name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--cm-accent-dark);
+}
+
+.cm-plan__sessions {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--cm-accent);
+  background: color-mix(in srgb, var(--cm-accent) 10%, transparent);
+  padding: 2px 8px;
+  border-radius: 100px;
+  display: inline-block;
+}
+
+.cm-plan__desc {
+  font-size: .83rem;
+  color: var(--cm-text-light);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.cm-plan__price {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--cm-text);
+  margin-top: auto;
+}
+
+/* ── Loading state ──────────────────────────────────────────────── */
+.cm-btn--loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+.cm-btn--loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: cm-spin .6s linear infinite;
+}
+
+@keyframes cm-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .cm-form-wrap { padding: 24px 16px; }
+  .cm-plans { grid-template-columns: 1fr; }
+  .cm-actions--split { flex-direction: column-reverse; gap: 12px; }
+  .cm-btn { justify-content: center; width: 100%; }
+}
