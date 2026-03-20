@@ -57,7 +57,7 @@ class CM_Frontend {
 
     public static function render_shortcode( $atts ) {
         $atts = shortcode_atts( [
-            'title'    => __( 'Join Us', 'custom-memberships' ),
+            'title'    => '',
             'subtitle' => '',
         ], $atts, 'membership_signup' );
 
@@ -96,12 +96,14 @@ class CM_Frontend {
 
                     <div class="cm-field">
                         <label for="cm_name"><?php esc_html_e( 'Full Name', 'custom-memberships' ); ?> <span class="cm-required">*</span></label>
-                        <input type="text" id="cm_name" name="cm_name" autocomplete="name" required>
+                        <input type="text" id="cm_name" name="cm_name" autocomplete="name" required
+                               placeholder="<?php esc_attr_e( 'e.g. Jane Doe', 'custom-memberships' ); ?>">
                     </div>
 
                     <div class="cm-field">
                         <label for="cm_email"><?php esc_html_e( 'Email Address', 'custom-memberships' ); ?> <span class="cm-required">*</span></label>
-                        <input type="email" id="cm_email" name="cm_email" autocomplete="email" required>
+                        <input type="email" id="cm_email" name="cm_email" autocomplete="email" required
+                               placeholder="<?php esc_attr_e( 'you@example.com', 'custom-memberships' ); ?>">
                     </div>
 
                     <div class="cm-field">
@@ -109,8 +111,8 @@ class CM_Frontend {
                             <?php esc_html_e( 'WhatsApp Number', 'custom-memberships' ); ?> <span class="cm-required">*</span>
                         </label>
                         <input type="tel" id="cm_phone" name="cm_phone" autocomplete="tel" required
-                               placeholder="+254 700 000 000">
-                        <span class="cm-field__hint"><?php esc_html_e( 'Please enter a valid WhatsApp number including country code.', 'custom-memberships' ); ?></span>
+                               placeholder="<?php esc_attr_e( 'e.g. 0712 345 678', 'custom-memberships' ); ?>">
+                        <span class="cm-field__hint"><?php esc_html_e( 'Please enter a valid WhatsApp number.', 'custom-memberships' ); ?></span>
                     </div>
 
                     <div class="cm-field">
@@ -145,20 +147,17 @@ class CM_Frontend {
                                     <input type="radio" name="cm_package_id"
                                            id="cm_package_<?php echo esc_attr( $pkg->id ); ?>"
                                            value="<?php echo esc_attr( $pkg->id ); ?>">
-                                    <div class="cm-plan__inner">
-                                        <div class="cm-plan__header">
-                                            <span class="cm-plan__name"><?php echo esc_html( $pkg->name ); ?></span>
-                                            <span class="cm-plan__sessions">
-                                                <?php echo esc_html( CM_Packages::sessions_label( $pkg->sessions ) ); ?>
-                                            </span>
-                                        </div>
-                                        <?php if ( $pkg->description ) : ?>
-                                            <p class="cm-plan__desc"><?php echo esc_html( $pkg->description ); ?></p>
-                                        <?php endif; ?>
-                                        <div class="cm-plan__price">
+                                    <span class="cm-plan__text">
+                                        <span class="cm-plan__name"><?php echo esc_html( $pkg->name ); ?></span>
+                                        <span class="cm-plan__meta">
+                                            <?php echo esc_html( CM_Packages::sessions_label( $pkg->sessions ) ); ?>
+                                            &mdash;
                                             <?php echo wp_kses_post( wc_price( $pkg->price ) ); ?>
-                                        </div>
-                                    </div>
+                                        </span>
+                                        <?php if ( $pkg->description ) : ?>
+                                            <span class="cm-plan__desc"><?php echo esc_html( $pkg->description ); ?></span>
+                                        <?php endif; ?>
+                                    </span>
                                 </label>
                             <?php endforeach; ?>
                         </div>

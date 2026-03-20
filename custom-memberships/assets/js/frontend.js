@@ -137,13 +137,6 @@
     goToStep1();
   });
 
-  // ── Plan selection visual ─────────────────────────────────────────
-
-  wrap.on('change', 'input[name="cm_package_id"]', function () {
-    wrap.find('.cm-plan__inner').css('');
-    $(this).closest('.cm-plan').find('.cm-plan__inner').addClass('cm-plan__inner--selected');
-  });
-
   // ── Step 2 submit ─────────────────────────────────────────────────
 
   $('#cm-form-step2').on('submit', function (e) {
