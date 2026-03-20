@@ -4,6 +4,29 @@
 
   var nonce = cmAdmin.nonce;
 
+  // ── Utilities ─────────────────────────────────────────────────────
+
+  function escHtml(str) {
+    return $('<div>').text(str || '').html();
+  }
+
+  function capitalize(str) {
+    return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+  }
+
+  function formatPrice(price) {
+    return cmAdmin.currencySymbol + parseFloat(price || 0).toLocaleString('en', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function flashRow($row, color) {
+    color = color || '#e6f4ea';
+    $row.css('background', color);
+    setTimeout(function () { $row.css('background', ''); }, 1000);
+  }
+
   // ── Modal helpers ─────────────────────────────────────────────────
 
   function openModal($modal) {
@@ -20,8 +43,11 @@
   }
 
   function showModalNotice($modal, msg, type) {
-    var $n = $modal.find('.cm-modal-notice');
-    $n.removeClass('is-error is-success').addClass('is-' + type).text(msg).show();
+    $modal.find('.cm-modal-notice')
+      .removeClass('is-error is-success')
+      .addClass('is-' + type)
+      .text(msg)
+      .show();
   }
 
   function clearModalNotice($modal) {
@@ -35,6 +61,25 @@
   // ── Packages page ─────────────────────────────────────────────────
 
   var $pkgModal = $('#cm-package-modal');
+
+  function renderPackageRow(pkg) {
+    var sessionsHtml = parseInt(pkg.sessions) === 0
+      ? '<span class="cm-badge cm-badge--unlimited">' + cmAdmin.i18n.unlimited + '</span>'
+      : escHtml(pkg.sessions);
+
+    var activeHtml = parseInt(pkg.active)
+      ? '<span class="cm-badge cm-badge--active">Yes</span>'
+      : '<span class="cm-badge cm-badge--inactive">No</span>';
+
+    return {
+      name:        '<strong>' + escHtml(pkg.name) + '</strong>',
+      description: escHtml((pkg.description || '').substring(0, 60)),
+      sessions:    sessionsHtml,
+      price:       escHtml(formatPrice(pkg.price)),
+      sort_order:  escHtml(pkg.sort_order),
+      active:      activeHtml,
+    };
+  }
 
   // Open for add.
   $(document).on('click', '.cm-btn-add-package', function () {
@@ -64,7 +109,9 @@
   // Save package.
   $('#cm-package-form').on('submit', function (e) {
     e.preventDefault();
-    var $btn = $(this).find('button[type="submit"]').prop('disabled', true).text('Saving…');
+    var isNew = $('#cm-pkg-id').val() === '0';
+    var $btn  = $(this).find('button[type="submit"]').prop('disabled', true).text('Saving…');
+
     $.post(cmAdmin.ajaxUrl, {
       action:      'cm_admin_save_package',
       nonce:       nonce,
@@ -76,12 +123,37 @@
       description: $('#cm-pkg-desc').val(),
       active:      $('#cm-pkg-active').is(':checked') ? 1 : 0,
     }, function (res) {
-      if (res.success) {
-        showModalNotice($pkgModal, cmAdmin.i18n.saved, 'success');
-        setTimeout(function () { location.reload(); }, 800);
-      } else {
+      if (!res.success) {
         showModalNotice($pkgModal, res.data.message || cmAdmin.i18n.error, 'error');
+        return;
       }
+
+      showModalNotice($pkgModal, cmAdmin.i18n.saved, 'success');
+
+      if (isNew) {
+        // New package — reload to get the full row with product link.
+        setTimeout(function () { location.reload(); }, 700);
+        return;
+      }
+
+      // Edit — update row in place.
+      var pkg  = res.data.package;
+      var $row = $('#cm-package-row-' + pkg.id);
+      var cells = renderPackageRow(pkg);
+
+      $row.find('td').eq(0).html(cells.name);
+      $row.find('td').eq(1).html(cells.description);
+      $row.find('td').eq(2).html(cells.sessions);
+      $row.find('td').eq(3).html(cells.price);
+      $row.find('td').eq(4).html(cells.sort_order);
+      $row.find('td').eq(5).html(cells.active);
+
+      // Refresh the data attribute so next edit opens fresh values.
+      $row.find('.cm-btn-edit-package').attr('data-package', JSON.stringify(pkg));
+
+      flashRow($row);
+      setTimeout(function () { closeModal($pkgModal); }, 700);
+
     }).fail(function () {
       showModalNotice($pkgModal, cmAdmin.i18n.error, 'error');
     }).always(function () {
@@ -106,6 +178,37 @@
 
   var $mbrModal = $('#cm-member-modal');
 
+  function renderMemberSessionsCell(m) {
+    if (parseInt(m.sessions_total) === 0) {
+      return '<span class="cm-badge cm-badge--unlimited">' + cmAdmin.i18n.unlimited + '</span>';
+    }
+    var zero = parseInt(m.sessions_remaining) === 0;
+    return '<span class="cm-sessions-remaining' + (zero ? ' cm-sessions-zero' : '') + '">'
+      + escHtml(m.sessions_remaining) + ' / ' + escHtml(m.sessions_total)
+      + '</span>'
+      + ' <button class="cm-btn-use-session button button-small" data-id="' + escHtml(m.id) + '" title="Use 1 session">&minus;1</button>';
+  }
+
+  function updateMemberRow(m) {
+    var $row = $('#cm-member-row-' + m.id);
+    if (!$row.length) return false;
+
+    $row.find('td').eq(0).html('<strong>' + escHtml(m.name) + '</strong>');
+    $row.find('td').eq(1).html('<a href="mailto:' + escHtml(m.email) + '">' + escHtml(m.email) + '</a>');
+    $row.find('td').eq(2).text(m.phone);
+    $row.find('td').eq(3).text(m.location);
+    $row.find('td').eq(4).text(m.package_name || '');
+    $row.find('td').eq(5).html(renderMemberSessionsCell(m));
+    $row.find('td').eq(6).html(
+      '<span class="cm-status cm-status--' + escHtml(m.status) + '">' + capitalize(m.status) + '</span>'
+    );
+
+    // Keep data attribute fresh for next edit.
+    $row.find('.cm-btn-edit-member').attr('data-member', JSON.stringify(m));
+
+    return true;
+  }
+
   // Open for add.
   $(document).on('click', '.cm-btn-add-member', function () {
     $('#cm-member-id').val('0');
@@ -128,7 +231,7 @@
     $('#cm-m-sessions').val(m.sessions_remaining);
     $('#cm-m-status').val(m.status);
     $('#cm-m-notes').val(m.notes || '');
-    $('#cm-member-modal-title').text('Edit Member');
+    $('#cm-member-modal-title').text('Edit Member — ' + m.name);
     $mbrModal.find('.cm-field--new-only').hide();
     $mbrModal.find('.cm-field--edit-only').show();
     clearModalNotice($mbrModal);
@@ -138,12 +241,13 @@
   // Save member.
   $('#cm-member-form').on('submit', function (e) {
     e.preventDefault();
-    var $btn = $(this).find('button[type="submit"]').prop('disabled', true).text('Saving…');
-    var id   = $('#cm-member-id').val();
+    var isNew = $('#cm-member-id').val() === '0';
+    var $btn  = $(this).find('button[type="submit"]').prop('disabled', true).text('Saving…');
+
     $.post(cmAdmin.ajaxUrl, {
       action:             'cm_admin_save_member',
       nonce:              nonce,
-      id:                 id,
+      id:                 $('#cm-member-id').val(),
       name:               $('#cm-m-name').val(),
       email:              $('#cm-m-email').val(),
       phone:              $('#cm-m-phone').val(),
@@ -153,12 +257,27 @@
       status:             $('#cm-m-status').val(),
       notes:              $('#cm-m-notes').val(),
     }, function (res) {
-      if (res.success) {
-        showModalNotice($mbrModal, cmAdmin.i18n.saved, 'success');
-        setTimeout(function () { location.reload(); }, 800);
-      } else {
+      if (!res.success) {
         showModalNotice($mbrModal, res.data.message || cmAdmin.i18n.error, 'error');
+        return;
       }
+
+      if (isNew) {
+        showModalNotice($mbrModal, cmAdmin.i18n.new_member, 'success');
+        setTimeout(function () { location.reload(); }, 700);
+        return;
+      }
+
+      // Edit — update row in place, close modal.
+      showModalNotice($mbrModal, cmAdmin.i18n.saved, 'success');
+      var m = res.data.member;
+      if (updateMemberRow(m)) {
+        flashRow($('#cm-member-row-' + m.id));
+        setTimeout(function () { closeModal($mbrModal); }, 600);
+      } else {
+        setTimeout(function () { location.reload(); }, 700);
+      }
+
     }).fail(function () {
       showModalNotice($mbrModal, cmAdmin.i18n.error, 'error');
     }).always(function () {
@@ -181,24 +300,15 @@
 
   // Use session (–1 button).
   $(document).on('click', '.cm-btn-use-session', function () {
-    var id  = $(this).data('id');
+    var id   = $(this).data('id');
     var $btn = $(this).prop('disabled', true);
     $.post(cmAdmin.ajaxUrl, { action: 'cm_admin_use_session', nonce: nonce, id: id, amount: 1 }, function (res) {
       if (res.success) {
         var m   = res.data.member;
         var $td = $btn.closest('td');
-        var unlimited = parseInt(m.sessions_total) === 0;
-        if (!unlimited) {
-          var zero = parseInt(m.sessions_remaining) === 0;
-          $td.find('.cm-sessions-remaining')
-            .text(m.sessions_remaining + ' / ' + m.sessions_total)
-            .toggleClass('cm-sessions-zero', zero);
-        }
-        $btn.prop('disabled', false);
-
-        // Flash row green briefly.
-        $btn.closest('tr').css('background', '#e6f4ea');
-        setTimeout(function () { $btn.closest('tr').css('background', ''); }, 1200);
+        $td.html(renderMemberSessionsCell(m));
+        $('#cm-member-row-' + m.id).find('.cm-btn-edit-member').attr('data-member', JSON.stringify(m));
+        flashRow($btn.closest('tr'));
       } else {
         alert(res.data.message || cmAdmin.i18n.error);
         $btn.prop('disabled', false);
@@ -223,12 +333,10 @@
     openModal($keyModal);
   }
 
-  function closeKeyModal() {
-    closeModal($keyModal);
-  }
-
   $('#cm-btn-add-key').on('click', openKeyModal);
-  $('#cm-key-modal-cancel, #cm-key-modal-close, #cm-key-modal-overlay').on('click', closeKeyModal);
+  $('#cm-key-modal-cancel, #cm-key-modal-close, #cm-key-modal-overlay').on('click', function () {
+    closeModal($keyModal);
+  });
   $('#cm-key-done-btn').on('click', function () { location.reload(); });
 
   $('#cm-key-form').on('submit', function (e) {
@@ -252,7 +360,6 @@
     });
   });
 
-  // Copy key.
   $('#cm-copy-key').on('click', function () {
     var $input = $('#cm-generated-key');
     $input[0].select();
@@ -260,7 +367,6 @@
     $(this).text(cmAdmin.i18n.copy_success);
   });
 
-  // Delete API key.
   $(document).on('click', '.cm-btn-delete-key', function () {
     if (!confirm(cmAdmin.i18n.confirm_delete)) return;
     var id = $(this).data('id');

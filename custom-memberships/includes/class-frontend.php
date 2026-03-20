@@ -10,6 +10,8 @@ class CM_Frontend {
         add_action( 'wp_ajax_nopriv_cm_submit_step1', [ __CLASS__, 'ajax_submit_step1' ] );
         add_action( 'wp_ajax_cm_submit_step2',        [ __CLASS__, 'ajax_submit_step2' ] );
         add_action( 'wp_ajax_nopriv_cm_submit_step2', [ __CLASS__, 'ajax_submit_step2' ] );
+        add_action( 'wp_ajax_cm_lookup_member',        [ __CLASS__, 'ajax_lookup_member' ] );
+        add_action( 'wp_ajax_nopriv_cm_lookup_member', [ __CLASS__, 'ajax_lookup_member' ] );
     }
 
     // -------------------------------------------------------------------------
@@ -208,6 +210,86 @@ class CM_Frontend {
                 'phone'    => $phone,
                 'location' => $location,
             ],
+        ] );
+    }
+
+    // -------------------------------------------------------------------------
+    // AJAX: Email lookup for returning customers
+    // -------------------------------------------------------------------------
+
+    public static function ajax_lookup_member() {
+        check_ajax_referer( 'cm_frontend', 'nonce' );
+
+        $email = sanitize_email( $_POST['email'] ?? '' );
+        if ( ! is_email( $email ) ) {
+            wp_send_json_success( [ 'found' => false ] );
+        }
+
+        $records = CM_Memberships::get_by_email( $email );
+        if ( empty( $records ) ) {
+            wp_send_json_success( [ 'found' => false ] );
+        }
+
+        // Prefer the most recent active membership; fall back to most recent overall.
+        $member = null;
+        foreach ( $records as $r ) {
+            if ( $r->status === 'active' ) {
+                $member = $r;
+                break;
+            }
+        }
+        if ( ! $member ) {
+            $member = $records[0];
+        }
+
+        $package  = CM_Packages::get( $member->package_id );
+        $unlimited = (int) $member->sessions_total === 0;
+
+        // Build a human-readable status message.
+        if ( $member->status === 'active' ) {
+            if ( $unlimited ) {
+                $msg = sprintf(
+                    __( 'Welcome back, %s! Your <strong>%s</strong> plan gives you unlimited sessions.', 'custom-memberships' ),
+                    esc_html( explode( ' ', trim( $member->name ) )[0] ),
+                    esc_html( $package ? $package->name : __( 'current', 'custom-memberships' ) )
+                );
+                $type = 'info';
+            } elseif ( (int) $member->sessions_remaining > 0 ) {
+                $msg = sprintf(
+                    _n(
+                        'Welcome back, %1$s! You have <strong>%2$d session</strong> left on your <strong>%3$s</strong> plan. You can purchase a new plan below.',
+                        'Welcome back, %1$s! You have <strong>%2$d sessions</strong> left on your <strong>%3$s</strong> plan. You can purchase a new plan below.',
+                        (int) $member->sessions_remaining,
+                        'custom-memberships'
+                    ),
+                    esc_html( explode( ' ', trim( $member->name ) )[0] ),
+                    (int) $member->sessions_remaining,
+                    esc_html( $package ? $package->name : __( 'current', 'custom-memberships' ) )
+                );
+                $type = 'info';
+            } else {
+                $msg = sprintf(
+                    __( 'Welcome back, %1$s! Your <strong>%2$s</strong> sessions have all been used. Select a plan below to renew.', 'custom-memberships' ),
+                    esc_html( explode( ' ', trim( $member->name ) )[0] ),
+                    esc_html( $package ? $package->name : __( 'previous', 'custom-memberships' ) )
+                );
+                $type = 'renew';
+            }
+        } else {
+            $msg = sprintf(
+                __( 'Welcome back, %s! Select a plan to get started.', 'custom-memberships' ),
+                esc_html( explode( ' ', trim( $member->name ) )[0] )
+            );
+            $type = 'info';
+        }
+
+        wp_send_json_success( [
+            'found'    => true,
+            'name'     => $member->name,
+            'phone'    => $member->phone,
+            'location' => $member->location,
+            'message'  => $msg,
+            'type'     => $type,
         ] );
     }
 

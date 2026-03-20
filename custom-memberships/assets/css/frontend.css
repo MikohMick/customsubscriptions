@@ -92,9 +92,12 @@
   margin-bottom: 12px;
   font-size: .9rem;
 }
-.cm-notice--error   { background: #fff0f0; border-left: 4px solid #c0555a; color: #7a1a1a; }
-.cm-notice--success { background: #f0fff4; border-left: 4px solid #2d5a27; color: #1a4a1a; }
-.cm-notice--info    { background: #f0f7ff; border-left: 4px solid #3b82f6; color: #1a3a5a; }
+.cm-notice--error     { background: #fff0f0; border-left: 4px solid #c0555a; color: #7a1a1a; }
+.cm-notice--success   { background: #f0fff4; border-left: 4px solid #2d5a27; color: #1a4a1a; }
+.cm-notice--info      { background: #f0f7ff; border-left: 4px solid #3b82f6; color: #1a3a5a; }
+/* Returning customer notices */
+.cm-notice--returning { background: #f0f7ff; border-left: 4px solid #3b82f6; color: #1a3a5a; }
+.cm-notice--renew     { background: #fffbeb; border-left: 4px solid var(--cm-accent); color: #5a3d00; }
 
 /* ── Panels ─────────────────────────────────────────────────────── */
 .cm-panel { display: none; }

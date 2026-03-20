@@ -8,7 +8,7 @@
   var panel2    = $('#cm-panel-2');
   var step1Dot  = wrap.find('[data-step="1"]');
   var step2Dot  = wrap.find('[data-step="2"]');
-  var step1Data = null; // validated data from step 1
+  var step1Data = null;
 
   // ── Helpers ──────────────────────────────────────────────────────
 
@@ -18,9 +18,7 @@
     notices[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  function clearNotices() {
-    notices.empty();
-  }
+  function clearNotices() { notices.empty(); }
 
   function setLoading($btn, loading) {
     if (loading) {
@@ -32,11 +30,11 @@
 
   function fieldError($input, msg) {
     $input.addClass('cm-field--error');
-    var $hint = $input.siblings('.cm-field__error');
-    if (!$hint.length) {
+    var $existing = $input.siblings('.cm-field__error');
+    if (!$existing.length) {
       $input.after('<span class="cm-field__error">' + msg + '</span>');
     } else {
-      $hint.text(msg);
+      $existing.text(msg);
     }
   }
 
@@ -62,6 +60,49 @@
     wrap[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  // ── Returning customer — email lookup ─────────────────────────────
+
+  var lookupTimer = null;
+
+  $('#cm_email').on('blur', function () {
+    var email = $.trim($(this).val());
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+
+    clearTimeout(lookupTimer);
+    lookupTimer = setTimeout(function () {
+      $.post(cmData.ajaxUrl, {
+        action: 'cm_lookup_member',
+        nonce:  cmData.nonce,
+        email:  email,
+      }, function (res) {
+        if (!res.success || !res.data.found) return;
+
+        var d = res.data;
+
+        // Pre-fill empty fields only — don't overwrite if user already typed.
+        if (!$.trim($('#cm_name').val()) && d.name) {
+          $('#cm_name').val(d.name);
+        }
+        if (!$.trim($('#cm_phone').val()) && d.phone) {
+          $('#cm_phone').val(d.phone);
+        }
+        if (!$.trim($('#cm_location').val()) && d.location) {
+          $('#cm_location').val(d.location);
+        }
+
+        // Show returning-member notice above the form.
+        var noticeClass = d.type === 'renew' ? 'cm-notice--renew' : 'cm-notice--returning';
+        notices.html('<div class="cm-notice ' + noticeClass + '">' + d.message + '</div>');
+      });
+    }, 400);
+  });
+
+  // Clear the returning-member notice if the email is changed after lookup.
+  $('#cm_email').on('input', function () {
+    clearTimeout(lookupTimer);
+    notices.empty();
+  });
+
   // ── Step 1 submit ─────────────────────────────────────────────────
 
   $('#cm-form-step1').on('submit', function (e) {
@@ -69,15 +110,14 @@
     clearNotices();
     clearFieldErrors($(this));
 
-    var $btn   = $(this).find('button[type="submit"]');
-    var nonce  = $(this).find('#cm_nonce').val();
+    var $btn  = $(this).find('button[type="submit"]');
+    var nonce = $(this).find('#cm_nonce').val();
 
     var name     = $.trim($('#cm_name').val());
     var email    = $.trim($('#cm_email').val());
     var phone    = $.trim($('#cm_phone').val());
     var location = $.trim($('#cm_location').val());
 
-    // Client-side pre-validation.
     var ok = true;
     if (!name)    { fieldError($('#cm_name'),     cmData.i18n.required); ok = false; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -103,7 +143,6 @@
       success: function (res) {
         if (res.success) {
           step1Data = res.data.data;
-          // Pass to step 2 form hidden field.
           $('#cm_step1_data').val(JSON.stringify(step1Data));
           goToStep2();
         } else {
@@ -122,20 +161,14 @@
           }
         }
       },
-      error: function () {
-        showNotice(cmData.i18n.error);
-      },
-      complete: function () {
-        setLoading($btn, false);
-      },
+      error: function () { showNotice(cmData.i18n.error); },
+      complete: function () { setLoading($btn, false); },
     });
   });
 
   // ── Back button ───────────────────────────────────────────────────
 
-  $('#cm-back-btn').on('click', function () {
-    goToStep1();
-  });
+  $('#cm-back-btn').on('click', function () { goToStep1(); });
 
   // ── Step 2 submit ─────────────────────────────────────────────────
 
@@ -143,16 +176,15 @@
     e.preventDefault();
     clearNotices();
 
-    var $btn       = $(this).find('button[type="submit"]');
-    var nonce      = $(this).find('#cm_nonce_step2').val();
-    var packageId  = $('input[name="cm_package_id"]:checked').val();
-    var step1Json  = $('#cm_step1_data').val();
+    var $btn      = $(this).find('button[type="submit"]');
+    var nonce     = $(this).find('#cm_nonce_step2').val();
+    var packageId = $('input[name="cm_package_id"]:checked').val();
+    var step1Json = $('#cm_step1_data').val();
 
     if (!packageId) {
       showNotice(cmData.i18n.select_plan);
       return;
     }
-
     if (!step1Json) {
       showNotice('Your details are missing. Please go back and try again.');
       goToStep1();

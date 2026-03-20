@@ -91,14 +91,18 @@ class CM_Admin {
             true
         );
         wp_localize_script( 'cm-admin', 'cmAdmin', [
-            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
-            'nonce'   => wp_create_nonce( 'cm_admin' ),
-            'i18n'    => [
+            'ajaxUrl'        => admin_url( 'admin-ajax.php' ),
+            'nonce'          => wp_create_nonce( 'cm_admin' ),
+            'currencySymbol' => get_woocommerce_currency_symbol(),
+            'dateFormat'     => get_option( 'date_format' ),
+            'i18n'           => [
                 'confirm_delete' => __( 'Are you sure? This cannot be undone.', 'custom-memberships' ),
                 'saved'          => __( 'Saved!', 'custom-memberships' ),
                 'deleted'        => __( 'Deleted.', 'custom-memberships' ),
                 'error'          => __( 'An error occurred. Please try again.', 'custom-memberships' ),
                 'copy_success'   => __( 'Copied!', 'custom-memberships' ),
+                'unlimited'      => __( 'Unlimited', 'custom-memberships' ),
+                'new_member'     => __( 'New member added. Reloading…', 'custom-memberships' ),
             ],
         ] );
     }
