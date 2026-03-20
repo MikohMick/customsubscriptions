@@ -93,7 +93,8 @@
 
   // Open for edit.
   $(document).on('click', '.cm-btn-edit-package', function () {
-    var pkg = JSON.parse($(this).data('package'));
+    var pkg = $(this).data('package');               // jQuery auto-parses JSON data attrs
+    if (typeof pkg === 'string') pkg = JSON.parse(pkg); // safety for .attr() writes
     $('#cm-pkg-id').val(pkg.id);
     $('#cm-pkg-name').val(pkg.name);
     $('#cm-pkg-price').val(pkg.price);
@@ -148,8 +149,9 @@
       $row.find('td').eq(4).html(cells.sort_order);
       $row.find('td').eq(5).html(cells.active);
 
-      // Refresh the data attribute so next edit opens fresh values.
-      $row.find('.cm-btn-edit-package').attr('data-package', JSON.stringify(pkg));
+      // Refresh the data attribute AND jQuery's internal cache for next edit.
+      var $editBtn = $row.find('.cm-btn-edit-package');
+      $editBtn.attr('data-package', JSON.stringify(pkg)).data('package', pkg);
 
       flashRow($row);
       setTimeout(function () { closeModal($pkgModal); }, 700);
@@ -203,8 +205,8 @@
       '<span class="cm-status cm-status--' + escHtml(m.status) + '">' + capitalize(m.status) + '</span>'
     );
 
-    // Keep data attribute fresh for next edit.
-    $row.find('.cm-btn-edit-member').attr('data-member', JSON.stringify(m));
+    // Keep data attribute AND jQuery cache fresh for next edit.
+    $row.find('.cm-btn-edit-member').attr('data-member', JSON.stringify(m)).data('member', m);
 
     return true;
   }
@@ -222,7 +224,8 @@
 
   // Open for edit.
   $(document).on('click', '.cm-btn-edit-member', function () {
-    var m = JSON.parse($(this).data('member'));
+    var m = $(this).data('member');
+    if (typeof m === 'string') m = JSON.parse(m);
     $('#cm-member-id').val(m.id);
     $('#cm-m-name').val(m.name);
     $('#cm-m-email').val(m.email);
@@ -307,7 +310,8 @@
         var m   = res.data.member;
         var $td = $btn.closest('td');
         $td.html(renderMemberSessionsCell(m));
-        $('#cm-member-row-' + m.id).find('.cm-btn-edit-member').attr('data-member', JSON.stringify(m));
+        $('#cm-member-row-' + m.id).find('.cm-btn-edit-member')
+          .attr('data-member', JSON.stringify(m)).data('member', m);
         flashRow($btn.closest('tr'));
       } else {
         alert(res.data.message || cmAdmin.i18n.error);

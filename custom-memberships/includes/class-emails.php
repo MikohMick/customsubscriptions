@@ -52,6 +52,53 @@ class CM_Emails {
     // Renewal reminder — sent when sessions_remaining hits 0
     // -------------------------------------------------------------------------
 
+    // -------------------------------------------------------------------------
+    // Top-up email — sent when an existing member purchases again
+    // -------------------------------------------------------------------------
+
+    public static function send_top_up( $member, $package ) {
+        if ( ! $member || ! $package ) {
+            return;
+        }
+
+        $subject = apply_filters( 'cm_topup_email_subject',
+            sprintf( __( 'Your %s sessions have been topped up!', 'custom-memberships' ), get_bloginfo( 'name' ) ),
+            $member
+        );
+
+        $unlimited = (int) $member->sessions_total === 0;
+        $sessions_text = $unlimited
+            ? __( 'Unlimited', 'custom-memberships' )
+            : sprintf(
+                _n( '%d session available', '%d sessions available', $member->sessions_remaining, 'custom-memberships' ),
+                $member->sessions_remaining
+            );
+
+        $message = self::wrap( sprintf(
+            __(
+                '<p>Hi %1$s,</p>
+                <p>Great news — your membership has been topped up with your new <strong>%2$s</strong> plan!</p>
+                <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%%;max-width:480px">
+                  <tr><td><strong>Plan</strong></td><td>%2$s</td></tr>
+                  <tr><td><strong>Sessions Available</strong></td><td>%3$s</td></tr>
+                </table>
+                <p>See you soon!</p>
+                <p>– The %4$s team</p>',
+                'custom-memberships'
+            ),
+            esc_html( explode( ' ', trim( $member->name ) )[0] ),
+            esc_html( $package->name ),
+            esc_html( $sessions_text ),
+            esc_html( get_bloginfo( 'name' ) )
+        ), $subject );
+
+        self::send( $member->email, $subject, $message );
+    }
+
+    // -------------------------------------------------------------------------
+    // Renewal reminder — sent when sessions_remaining hits 0
+    // -------------------------------------------------------------------------
+
     public static function send_renewal_reminder( $member ) {
         if ( ! $member ) {
             return;

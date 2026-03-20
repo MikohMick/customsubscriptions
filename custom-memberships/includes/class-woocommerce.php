@@ -50,27 +50,48 @@ class CM_WooCommerce {
             }
 
             // Pull member info stored on order.
-            $name     = $order->get_meta( '_cm_member_name' )     ?: $order->get_billing_first_name() . ' ' . $order->get_billing_last_name();
+            $name     = $order->get_meta( '_cm_member_name' )     ?: trim( $order->get_billing_first_name() . ' ' . $order->get_billing_last_name() );
             $email    = $order->get_meta( '_cm_member_email' )    ?: $order->get_billing_email();
             $phone    = $order->get_meta( '_cm_member_phone' )    ?: $order->get_billing_phone();
             $location = $order->get_meta( '_cm_member_location' ) ?: $order->get_billing_city();
 
-            $member_id = CM_Memberships::create( [
-                'name'       => $name,
-                'email'      => $email,
-                'phone'      => $phone,
-                'location'   => $location,
-                'package_id' => $package_id,
-                'status'     => 'active',
-                'order_id'   => $order_id,
-            ] );
+            // Check if this email already has a membership — top up rather than duplicate.
+            $existing = $email ? CM_Memberships::get_latest_by_email( $email ) : null;
 
-            if ( ! is_wp_error( $member_id ) ) {
+            if ( $existing ) {
+                CM_Memberships::top_up_sessions( $existing->id, $package );
+
+                // Update contact details in case they've changed.
+                CM_Memberships::update( $existing->id, array_filter( [
+                    'name'     => $name,
+                    'phone'    => $phone,
+                    'location' => $location,
+                    'order_id' => $order_id,
+                ] ) );
+
                 $order->update_meta_data( '_cm_membership_created', 1 );
-                $order->update_meta_data( '_cm_member_id', $member_id );
+                $order->update_meta_data( '_cm_member_id', $existing->id );
                 $order->save();
 
-                CM_Emails::send_welcome( CM_Memberships::get( $member_id ) );
+                CM_Emails::send_top_up( CM_Memberships::get( $existing->id ), $package );
+            } else {
+                $member_id = CM_Memberships::create( [
+                    'name'       => $name,
+                    'email'      => $email,
+                    'phone'      => $phone,
+                    'location'   => $location,
+                    'package_id' => $package_id,
+                    'status'     => 'active',
+                    'order_id'   => $order_id,
+                ] );
+
+                if ( ! is_wp_error( $member_id ) ) {
+                    $order->update_meta_data( '_cm_membership_created', 1 );
+                    $order->update_meta_data( '_cm_member_id', $member_id );
+                    $order->save();
+
+                    CM_Emails::send_welcome( CM_Memberships::get( $member_id ) );
+                }
             }
         }
     }

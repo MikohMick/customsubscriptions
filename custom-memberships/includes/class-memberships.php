@@ -144,6 +144,70 @@ class CM_Memberships {
         $wpdb->delete( CM_TABLE_MEMBERS, [ 'id' => $id ] );
     }
 
+    /**
+     * Get the most recent active membership for an email.
+     * Falls back to any record (most recent) if no active one exists.
+     */
+    public static function get_latest_by_email( $email ) {
+        global $wpdb;
+        // Active first.
+        $row = $wpdb->get_row( $wpdb->prepare(
+            "SELECT m.*, p.name AS package_name, p.sessions AS package_sessions
+             FROM " . CM_TABLE_MEMBERS . " m
+             LEFT JOIN " . CM_TABLE_PACKAGES . " p ON p.id = m.package_id
+             WHERE m.email = %s AND m.status = 'active'
+             ORDER BY m.created_at DESC LIMIT 1",
+            $email
+        ) );
+        if ( $row ) return $row;
+
+        return $wpdb->get_row( $wpdb->prepare(
+            "SELECT m.*, p.name AS package_name, p.sessions AS package_sessions
+             FROM " . CM_TABLE_MEMBERS . " m
+             LEFT JOIN " . CM_TABLE_PACKAGES . " p ON p.id = m.package_id
+             WHERE m.email = %s
+             ORDER BY m.created_at DESC LIMIT 1",
+            $email
+        ) );
+    }
+
+    /**
+     * Top up a member's sessions when they purchase a new package.
+     * Adds new package sessions on top of what's remaining.
+     * For unlimited packages (sessions = 0) switches them to unlimited.
+     */
+    public static function top_up_sessions( $member_id, $package ) {
+        $member = self::get( $member_id );
+        if ( ! $member ) return;
+
+        $new_sessions = (int) $package->sessions;
+
+        if ( $new_sessions === 0 ) {
+            // Upgrading to an unlimited plan.
+            self::update( $member_id, [
+                'package_id'         => (int) $package->id,
+                'sessions_total'     => 0,
+                'sessions_remaining' => 0,
+                'status'             => 'active',
+                'renewal_email_sent' => 0,
+            ] );
+        } else {
+            // Add new sessions on top of what's left (0 if previously unlimited).
+            $current_remaining = (int) $member->sessions_total === 0
+                ? 0
+                : (int) $member->sessions_remaining;
+            $new_remaining = $current_remaining + $new_sessions;
+
+            self::update( $member_id, [
+                'package_id'         => (int) $package->id,
+                'sessions_total'     => $new_sessions,
+                'sessions_remaining' => $new_remaining,
+                'status'             => 'active',
+                'renewal_email_sent' => 0,
+            ] );
+        }
+    }
+
     // -------------------------------------------------------------------------
     // Session management
     // -------------------------------------------------------------------------
