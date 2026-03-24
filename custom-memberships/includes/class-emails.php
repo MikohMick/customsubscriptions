@@ -96,6 +96,136 @@ class CM_Emails {
     }
 
     // -------------------------------------------------------------------------
+    // Manual-add welcome — sent when admin adds a member directly
+    // -------------------------------------------------------------------------
+
+    public static function send_manual_welcome( $member ) {
+        if ( ! $member ) {
+            return;
+        }
+
+        $package      = CM_Packages::get( $member->package_id );
+        $unlimited    = (int) $member->sessions_total === 0;
+        $sessions_txt = $unlimited
+            ? __( 'Unlimited', 'custom-memberships' )
+            : sprintf(
+                _n( '%d session', '%d sessions', (int) $member->sessions_total, 'custom-memberships' ),
+                (int) $member->sessions_total
+            );
+
+        $subject = apply_filters( 'cm_manual_welcome_subject',
+            sprintf( __( 'Welcome to %s — your membership is ready', 'custom-memberships' ), get_bloginfo( 'name' ) ),
+            $member
+        );
+
+        $message = self::wrap( sprintf(
+            __(
+                '<p>Hi %1$s,</p>
+                <p>Your membership has been set up. Here are your details:</p>
+                <table cellpadding="8" cellspacing="0" style="border-collapse:collapse;width:100%%;max-width:480px">
+                  <tr><td><strong>Plan</strong></td><td>%2$s</td></tr>
+                  <tr><td><strong>Sessions</strong></td><td>%3$s</td></tr>
+                </table>
+                <p>If you have any questions, just reply to this email.</p>
+                <p>– The %4$s team</p>',
+                'custom-memberships'
+            ),
+            esc_html( explode( ' ', trim( $member->name ) )[0] ),
+            esc_html( $package ? $package->name : '' ),
+            esc_html( $sessions_txt ),
+            esc_html( get_bloginfo( 'name' ) )
+        ), $subject );
+
+        self::send( $member->email, $subject, $message );
+    }
+
+    // -------------------------------------------------------------------------
+    // Session update — sent when admin edits or deducts sessions manually
+    // -------------------------------------------------------------------------
+
+    /**
+     * @param object $member          Fresh member row (sessions already updated).
+     * @param int    $sessions_before Value before the change.
+     */
+    public static function send_session_update( $member, $sessions_before ) {
+        if ( ! $member ) {
+            return;
+        }
+
+        // Unlimited members don't track sessions — nothing meaningful to send.
+        if ( (int) $member->sessions_total === 0 ) {
+            return;
+        }
+
+        $sessions_after = (int) $member->sessions_remaining;
+        $diff           = $sessions_after - (int) $sessions_before;
+
+        if ( $diff === 0 ) {
+            return;
+        }
+
+        // Renewal reminder handles the 0-sessions case — skip to avoid double email.
+        if ( $sessions_after === 0 ) {
+            return;
+        }
+
+        $package = CM_Packages::get( $member->package_id );
+
+        if ( $diff < 0 ) {
+            $abs  = abs( $diff );
+            $subject = apply_filters( 'cm_session_deducted_subject',
+                sprintf( __( '%s — session recorded', 'custom-memberships' ), get_bloginfo( 'name' ) ),
+                $member
+            );
+            $intro = $abs === 1
+                ? sprintf(
+                    __( 'A session has been recorded against your <strong>%s</strong> plan.', 'custom-memberships' ),
+                    esc_html( $package ? $package->name : '' )
+                )
+                : sprintf(
+                    __( '<strong>%1$d sessions</strong> have been recorded against your <strong>%2$s</strong> plan.', 'custom-memberships' ),
+                    $abs,
+                    esc_html( $package ? $package->name : '' )
+                );
+        } else {
+            $subject = apply_filters( 'cm_session_added_subject',
+                sprintf( __( '%s — sessions added to your membership', 'custom-memberships' ), get_bloginfo( 'name' ) ),
+                $member
+            );
+            $intro = sprintf(
+                _n(
+                    '<strong>%1$d session</strong> has been added to your <strong>%2$s</strong> plan.',
+                    '<strong>%1$d sessions</strong> have been added to your <strong>%2$s</strong> plan.',
+                    $diff,
+                    'custom-memberships'
+                ),
+                $diff,
+                esc_html( $package ? $package->name : '' )
+            );
+        }
+
+        $remaining_line = sprintf(
+            _n(
+                'You now have <strong>%d session remaining</strong>.',
+                'You now have <strong>%d sessions remaining</strong>.',
+                $sessions_after,
+                'custom-memberships'
+            ),
+            $sessions_after
+        );
+
+        $message = self::wrap( sprintf(
+            '<p>Hi %1$s,</p><p>%2$s</p><p>%3$s</p><p>– The %4$s team</p>',
+            esc_html( explode( ' ', trim( $member->name ) )[0] ),
+            $intro,
+            $remaining_line,
+            esc_html( get_bloginfo( 'name' ) )
+        ), $subject );
+
+        self::send( $member->email, $subject, $message );
+    }
+
+    // -------------------------------------------------------------------------
     // Renewal reminder — sent when sessions_remaining hits 0
     // -------------------------------------------------------------------------
 

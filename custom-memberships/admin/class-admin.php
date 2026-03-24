@@ -201,11 +201,21 @@ class CM_Admin {
         ];
 
         if ( $id ) {
+            // Capture session count before saving so we can detect changes.
+            $before           = CM_Memberships::get( $id );
+            $sessions_before  = $before ? (int) $before->sessions_remaining : 0;
+
             CM_Memberships::update( $id, $data );
 
             // Reset renewal flag if sessions were added back.
             if ( (int) $data['sessions_remaining'] > 0 ) {
                 CM_Memberships::update( $id, [ 'renewal_email_sent' => 0 ] );
+            }
+
+            // Notify member if sessions changed.
+            $fresh = CM_Memberships::get( $id );
+            if ( $sessions_before !== (int) $fresh->sessions_remaining ) {
+                CM_Emails::send_session_update( $fresh, $sessions_before );
             }
         } else {
             $package_id = intval( $_POST['package_id'] ?? 0 );
@@ -217,6 +227,9 @@ class CM_Admin {
             if ( is_wp_error( $id ) ) {
                 wp_send_json_error( [ 'message' => $id->get_error_message() ] );
             }
+
+            // Welcome email for manually added members.
+            CM_Emails::send_manual_welcome( CM_Memberships::get( $id ) );
         }
 
         wp_send_json_success( [ 'id' => $id, 'member' => CM_Memberships::get( $id ) ] );
@@ -242,10 +255,22 @@ class CM_Admin {
         }
         $id     = intval( $_POST['id'] ?? 0 );
         $amount = max( 1, intval( $_POST['amount'] ?? 1 ) );
+
+        // Capture before so we can show the diff in the email.
+        $before          = CM_Memberships::get( $id );
+        $sessions_before = $before ? (int) $before->sessions_remaining : 0;
+
         $result = CM_Memberships::use_sessions( $id, $amount );
         if ( is_wp_error( $result ) ) {
             wp_send_json_error( [ 'message' => $result->get_error_message() ] );
         }
-        wp_send_json_success( [ 'member' => CM_Memberships::get( $id ) ] );
+
+        $member = CM_Memberships::get( $id );
+
+        // Send session notification (send_session_update skips if remaining hits 0 —
+        // that case is already handled by the renewal reminder inside use_sessions()).
+        CM_Emails::send_session_update( $member, $sessions_before );
+
+        wp_send_json_success( [ 'member' => $member ] );
     }
 }
