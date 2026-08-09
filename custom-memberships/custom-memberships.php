@@ -3,7 +3,7 @@
  * Plugin Name: Custom Memberships
  * Plugin URI:  https://github.com/MikohMick/customsubscriptions
  * Description: Membership management with session tracking, WooCommerce checkout, REST API, and automated renewal emails.
- * Version:     1.1.0
+ * Version:     1.1.1
  * Author:      MikohMick
  * Text Domain: custom-memberships
  * Requires at least: 6.0
@@ -13,7 +13,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CM_VERSION', '1.1.0' );
+define( 'CM_VERSION', '1.1.1' );
 define( 'CM_PLUGIN_FILE', __FILE__ );
 define( 'CM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );

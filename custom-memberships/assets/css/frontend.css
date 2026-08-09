@@ -1,63 +1,97 @@
 /*
  * Custom Memberships — Frontend Form Styles
- * Inherits site/Elementor CSS custom properties where available.
+ *
+ * Self-contained by design. Themes and page builders style bare <button>,
+ * <label> and <input> elements aggressively (pill radii, uppercase, brand
+ * colours), which used to leak into this form and break it. Everything below
+ * is scoped to .cm-form-wrap and resets what it needs, so the form looks the
+ * same on any theme.
+ *
+ * To retheme, change the custom properties in the first block — nothing else.
  */
 
-/* ── CSS variable bridge ────────────────────────────────────────── */
+/* ── Palette ────────────────────────────────────────────────────── */
 .cm-form-wrap {
-  --cm-accent:        var(--e-global-color-accent,       var(--wp--preset--color--primary,       #c0555a));
-  --cm-accent-dark:   var(--e-global-color-secondary,    var(--wp--preset--color--secondary,     #2d5a27));
-  --cm-text:          var(--e-global-color-text,         var(--wp--preset--color--foreground,    #333333));
-  --cm-text-light:    #666;
-  --cm-bg:            var(--e-global-color-background,   var(--wp--preset--color--background,    #ffffff));
-  --cm-border:        #ddd;
-  --cm-radius:        6px;
-  --cm-font:          var(--e-global-typography-text-font-family, inherit);
-  --cm-transition:    0.2s ease;
+  --cm-brand:        #5c1b2f;  /* deep burgundy — headers, buttons, selected */
+  --cm-brand-hover:  #431423;
+  --cm-accent:       #b8556b;  /* dusty rose — badges, required marks */
+  --cm-accent-soft:  #f7e9ec;
+
+  --cm-text:         #2e2a2b;
+  --cm-text-muted:   #6e6468;
+  --cm-surface:      #ffffff;
+  --cm-surface-alt:  #fbf7f5;
+  --cm-border:       #e2d7d5;
+  --cm-border-dark:  #cbbab8;
+
+  --cm-radius:       6px;
+  --cm-radius-sm:    4px;
+  --cm-speed:        .18s ease;
+
+  --cm-font:         inherit;
+  --cm-error:        #b3261e;
+  --cm-error-bg:     #fdecea;
+  --cm-ok:           #1e6b34;
+  --cm-ok-bg:        #e8f5ec;
+  --cm-info:         #1a5276;
+  --cm-info-bg:      #e8f1f8;
+  --cm-warn:         #8a5a00;
+  --cm-warn-bg:      #fdf4e3;
 }
 
 /* ── Wrapper ────────────────────────────────────────────────────── */
 .cm-form-wrap {
-  max-width: 560px;
+  max-width: 620px;
   margin: 0 auto;
-  padding: 24px 0;
+  padding: 8px 0 24px;
   font-family: var(--cm-font);
+  font-size: 16px;
+  line-height: 1.5;
   color: var(--cm-text);
+  text-align: left;
+  box-sizing: border-box;
 }
+.cm-form-wrap *,
+.cm-form-wrap *::before,
+.cm-form-wrap *::after { box-sizing: border-box; }
 
-.cm-form-title {
+.cm-form-wrap .cm-form-title {
   margin: 0 0 6px;
   font-size: 1.5rem;
-  color: var(--cm-accent-dark);
+  line-height: 1.25;
+  color: var(--cm-brand);
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-.cm-form-subtitle {
-  margin: 0 0 24px;
-  color: var(--cm-text-light);
+.cm-form-wrap .cm-form-subtitle {
+  margin: 0 0 22px;
+  color: var(--cm-text-muted);
+  font-size: .95rem;
 }
 
 /* ── Step indicator ─────────────────────────────────────────────── */
-.cm-steps {
+.cm-form-wrap .cm-steps {
   display: flex;
   align-items: center;
-  margin-bottom: 28px;
+  margin: 0 0 26px;
 }
 
-.cm-step {
+.cm-form-wrap .cm-step {
   display: flex;
   align-items: center;
   gap: 8px;
-  opacity: .4;
-  transition: opacity var(--cm-transition);
+  opacity: .45;
+  transition: opacity var(--cm-speed);
 }
-.cm-step--active { opacity: 1; }
+.cm-form-wrap .cm-step--active { opacity: 1; }
 
-.cm-step__number {
+.cm-form-wrap .cm-step__number {
   width: 26px;
   height: 26px;
   border-radius: 50%;
   background: var(--cm-border);
-  color: var(--cm-text-light);
+  color: var(--cm-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -65,18 +99,19 @@
   font-weight: 700;
   flex-shrink: 0;
 }
-
-.cm-step--active .cm-step__number {
-  background: var(--cm-accent-dark);
+.cm-form-wrap .cm-step--active .cm-step__number {
+  background: var(--cm-brand);
   color: #fff;
 }
 
-.cm-step__label {
+.cm-form-wrap .cm-step__label {
   font-size: .85rem;
   font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-.cm-step-connector {
+.cm-form-wrap .cm-step-connector {
   flex: 1;
   height: 1px;
   background: var(--cm-border);
@@ -84,130 +119,141 @@
 }
 
 /* ── Notices ────────────────────────────────────────────────────── */
-.cm-notices { margin-bottom: 16px; }
+.cm-form-wrap .cm-notices { margin-bottom: 16px; }
+.cm-form-wrap .cm-notices:empty { margin-bottom: 0; }
 
-.cm-notice {
-  padding: 12px 16px;
-  border-radius: var(--cm-radius);
-  margin-bottom: 12px;
+.cm-form-wrap .cm-notice {
+  padding: 12px 15px;
+  border-radius: var(--cm-radius-sm);
+  margin: 0 0 12px;
   font-size: .9rem;
+  border-left: 3px solid transparent;
 }
-.cm-notice--error     { background: #fff0f0; border-left: 4px solid #c0555a; color: #7a1a1a; }
-.cm-notice--success   { background: #f0fff4; border-left: 4px solid #2d5a27; color: #1a4a1a; }
-.cm-notice--info      { background: #f0f7ff; border-left: 4px solid #3b82f6; color: #1a3a5a; }
-/* Returning customer notices */
-.cm-notice--returning { background: #f0f7ff; border-left: 4px solid #3b82f6; color: #1a3a5a; }
-.cm-notice--renew     { background: #fffbeb; border-left: 4px solid var(--cm-accent); color: #5a3d00; }
+.cm-form-wrap .cm-notice--error     { background: var(--cm-error-bg); border-left-color: var(--cm-error); color: #7a1a15; }
+.cm-form-wrap .cm-notice--success   { background: var(--cm-ok-bg);    border-left-color: var(--cm-ok);    color: #14532b; }
+.cm-form-wrap .cm-notice--info,
+.cm-form-wrap .cm-notice--returning { background: var(--cm-info-bg);  border-left-color: var(--cm-info);  color: #14405e; }
+.cm-form-wrap .cm-notice--renew,
+.cm-form-wrap .cm-notice--warning   { background: var(--cm-warn-bg);  border-left-color: var(--cm-accent); color: #6b4400; }
 
 /* ── Panels ─────────────────────────────────────────────────────── */
-.cm-panel { display: none; }
-.cm-panel--active { display: block; }
+.cm-form-wrap .cm-panel { display: none; }
+.cm-form-wrap .cm-panel--active { display: block; }
 
 /* ── Fields ─────────────────────────────────────────────────────── */
-.cm-field {
-  margin-bottom: 18px;
-}
+.cm-form-wrap .cm-field { margin-bottom: 18px; }
 
-.cm-field label {
+.cm-form-wrap .cm-field > label {
   display: block;
+  margin: 0 0 6px;
   font-size: .875rem;
   font-weight: 600;
-  margin-bottom: 6px;
   color: var(--cm-text);
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-.cm-required { color: var(--cm-accent); margin-left: 2px; }
+.cm-form-wrap .cm-required { color: var(--cm-accent); }
 
-.cm-field input[type="text"],
-.cm-field input[type="email"],
-.cm-field input[type="tel"] {
+.cm-form-wrap .cm-field input[type="text"],
+.cm-form-wrap .cm-field input[type="email"],
+.cm-form-wrap .cm-field input[type="tel"] {
   display: block;
   width: 100%;
-  box-sizing: border-box;
-  padding: 10px 14px;
-  border: 1.5px solid var(--cm-border);
-  border-radius: var(--cm-radius);
+  margin: 0;
+  padding: 11px 14px;
+  border: 1px solid var(--cm-border-dark);
+  border-radius: var(--cm-radius-sm);
   font-size: 1rem;
-  font-family: var(--cm-font);
+  font-family: inherit;
+  line-height: 1.4;
   color: var(--cm-text);
-  background: var(--cm-bg);
-  transition: border-color var(--cm-transition), box-shadow var(--cm-transition);
+  background: var(--cm-surface);
+  box-shadow: none;
+  transition: border-color var(--cm-speed), box-shadow var(--cm-speed);
 }
 
-.cm-field input::placeholder { color: #aaa; }
+.cm-form-wrap .cm-field input::placeholder { color: #a89ea1; opacity: 1; }
 
-.cm-field input:focus {
+.cm-form-wrap .cm-field input:focus {
   outline: none;
-  border-color: var(--cm-accent-dark);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cm-accent-dark) 12%, transparent);
+  border-color: var(--cm-brand);
+  box-shadow: 0 0 0 3px rgba(92, 27, 47, .12);
 }
 
-.cm-field input.cm-field--error { border-color: #c0555a; }
-
-.cm-field__error {
-  display: block;
-  font-size: .8rem;
-  color: #c0555a;
-  margin-top: 4px;
+.cm-form-wrap .cm-field input.cm-field--error {
+  border-color: var(--cm-error);
 }
 
-.cm-field__hint {
+.cm-form-wrap .cm-field__error {
   display: block;
+  margin-top: 5px;
   font-size: .8rem;
-  color: var(--cm-text-light);
-  margin-top: 4px;
+  color: var(--cm-error);
+}
+
+.cm-form-wrap .cm-field__hint {
+  display: block;
+  margin-top: 5px;
+  font-size: .8rem;
+  color: var(--cm-text-muted);
 }
 
 /* ── Buttons ────────────────────────────────────────────────────── */
-.cm-btn {
+/* `all: unset` clears theme button styling; everything is re-declared. */
+.cm-form-wrap .cm-btn {
+  all: unset;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 11px 28px;
-  border: none;
-  border-radius: 100px;
-  font-size: .875rem;
-  font-family: var(--cm-font);
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-transform: uppercase;
+  padding: 12px 26px;
+  border-radius: var(--cm-radius-sm);
+  font-family: inherit;
+  font-size: .9rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: normal;
   cursor: pointer;
-  transition: background var(--cm-transition), opacity var(--cm-transition);
-  min-width: 160px;
   position: relative;
+  min-width: 150px;
+  transition: background var(--cm-speed), border-color var(--cm-speed), color var(--cm-speed);
+}
+.cm-form-wrap .cm-btn:focus-visible {
+  outline: 2px solid var(--cm-brand);
+  outline-offset: 2px;
 }
 
-.cm-btn--primary {
-  background: var(--cm-accent-dark);
+.cm-form-wrap .cm-btn--primary {
+  background: var(--cm-brand);
   color: #fff;
 }
-.cm-btn--primary:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-.cm-btn--primary:disabled { opacity: .5; cursor: not-allowed; }
+.cm-form-wrap .cm-btn--primary:hover { background: var(--cm-brand-hover); }
+.cm-form-wrap .cm-btn--primary[disabled] { opacity: .45; cursor: not-allowed; }
 
-.cm-btn--ghost {
+.cm-form-wrap .cm-btn--ghost {
   background: transparent;
-  color: var(--cm-text-light);
-  border: 1.5px solid var(--cm-border);
-  min-width: auto;
+  color: var(--cm-text-muted);
+  border: 1px solid var(--cm-border-dark);
+  min-width: 0;
+  padding: 12px 20px;
 }
-.cm-btn--ghost:hover { border-color: var(--cm-text); color: var(--cm-text); }
+.cm-form-wrap .cm-btn--ghost:hover { color: var(--cm-text); border-color: var(--cm-text-muted); }
 
-.cm-actions {
+.cm-form-wrap .cm-actions {
   margin-top: 24px;
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
 }
-.cm-actions--split { justify-content: space-between; align-items: center; }
+.cm-form-wrap .cm-actions--split { justify-content: space-between; }
 
-/* ── Loading spinner ────────────────────────────────────────────── */
-.cm-btn--loading {
-  color: transparent !important;
-  pointer-events: none;
-}
-.cm-btn--loading::after {
+/* Loading spinner, centred inside the button */
+.cm-form-wrap .cm-btn--loading { color: transparent !important; pointer-events: none; }
+.cm-form-wrap .cm-btn--loading::after {
   content: '';
   position: absolute;
   top: 50%;
@@ -215,234 +261,360 @@
   width: 16px;
   height: 16px;
   margin: -8px 0 0 -8px;
-  border: 2px solid rgba(255,255,255,.35);
+  border: 2px solid rgba(255, 255, 255, .35);
   border-top-color: #fff;
   border-radius: 50%;
   animation: cm-spin .65s linear infinite;
 }
-
-@keyframes cm-spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes cm-spin { to { transform: rotate(360deg); } }
 
 /* ── Plans intro ────────────────────────────────────────────────── */
-.cm-plans-intro {
+.cm-form-wrap .cm-plans-intro {
   margin: 0 0 14px;
   font-size: .9rem;
-  color: var(--cm-text-light);
+  color: var(--cm-text-muted);
 }
 
-/* ── Accordion (categories) ─────────────────────────────────────── */
-.cm-accordion {
-  border: 1.5px solid var(--cm-border);
+/* ── Accordion ──────────────────────────────────────────────────── */
+.cm-form-wrap .cm-accordion {
+  border: 1px solid var(--cm-border);
   border-radius: var(--cm-radius);
   overflow: hidden;
+  background: var(--cm-surface);
 }
 
-.cm-accordion__item + .cm-accordion__item {
+.cm-form-wrap .cm-accordion__item + .cm-accordion__item {
   border-top: 1px solid var(--cm-border);
 }
 
-.cm-accordion__header {
+/*
+ * The header is a <button>. `all: unset` strips the theme's pill radius,
+ * background, uppercase and padding before we rebuild it as a flat row.
+ */
+.cm-form-wrap .cm-accordion__header {
+  all: unset;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 16px 18px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
+  padding: 15px 16px;
+  background: var(--cm-surface);
+  border-radius: 0;
+  font-family: inherit;
   text-align: left;
-  font-family: var(--cm-font);
+  text-transform: none;
+  letter-spacing: normal;
   color: var(--cm-text);
-  transition: background var(--cm-transition);
+  cursor: pointer;
+  transition: background var(--cm-speed);
 }
-.cm-accordion__header:hover {
-  background: color-mix(in srgb, var(--cm-accent-dark) 4%, transparent);
-}
-.cm-accordion__header:focus-visible {
-  outline: 2px solid var(--cm-accent-dark);
+.cm-form-wrap .cm-accordion__header:hover { background: var(--cm-surface-alt); }
+.cm-form-wrap .cm-accordion__header:focus-visible {
+  outline: 2px solid var(--cm-brand);
   outline-offset: -2px;
 }
 
-.cm-accordion__item--open > .cm-accordion__header {
-  background: color-mix(in srgb, var(--cm-accent-dark) 6%, transparent);
+.cm-form-wrap .cm-accordion__item--open > .cm-accordion__header {
+  background: var(--cm-surface-alt);
+  border-bottom: 1px solid var(--cm-border);
 }
 
-.cm-accordion__heading {
+.cm-form-wrap .cm-accordion__heading {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.cm-accordion__title {
-  font-weight: 700;
+.cm-form-wrap .cm-accordion__title {
   font-size: 1rem;
-  color: var(--cm-accent-dark);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--cm-brand);
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-.cm-accordion__subtitle {
+.cm-form-wrap .cm-accordion__subtitle {
   font-size: .8rem;
-  color: var(--cm-text-light);
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--cm-text-muted);
+  text-transform: none;
+  letter-spacing: normal;
 }
 
-.cm-accordion__right {
+.cm-form-wrap .cm-accordion__right {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
 }
 
-.cm-accordion__selected {
-  font-size: .75rem;
+.cm-form-wrap .cm-accordion__selected {
+  font-size: .72rem;
   font-weight: 600;
+  line-height: 1;
   color: #fff;
-  background: var(--cm-accent-dark);
-  padding: 3px 10px;
+  background: var(--cm-brand);
+  padding: 5px 10px;
   border-radius: 100px;
-  max-width: 160px;
+  max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.cm-form-wrap .cm-accordion__selected[hidden] { display: none; }
 
-/* Chevron */
-.cm-accordion__icon {
-  width: 9px;
-  height: 9px;
-  border-right: 2px solid var(--cm-text-light);
-  border-bottom: 2px solid var(--cm-text-light);
-  transform: rotate(45deg);
-  transition: transform var(--cm-transition);
-  margin-bottom: 3px;
+/* Chevron — a rotated square, sized so it can't drift */
+.cm-form-wrap .cm-accordion__icon {
+  display: block;
+  width: 8px;
+  height: 8px;
+  flex-shrink: 0;
+  border-right: 2px solid var(--cm-text-muted);
+  border-bottom: 2px solid var(--cm-text-muted);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform var(--cm-speed);
 }
-.cm-accordion__item--open .cm-accordion__icon {
-  transform: rotate(-135deg);
-  margin-bottom: -3px;
+.cm-form-wrap .cm-accordion__item--open .cm-accordion__icon {
+  transform: translateY(2px) rotate(-135deg);
 }
 
-.cm-accordion__panel {
-  padding: 4px 18px 18px;
+.cm-form-wrap .cm-accordion__panel {
+  padding: 14px 16px 16px;
+  background: var(--cm-surface);
 }
-.cm-accordion__panel[hidden] { display: none; }
+.cm-form-wrap .cm-accordion__panel[hidden] { display: none; }
 
-.cm-accordion__desc {
+.cm-form-wrap .cm-accordion__desc {
   margin: 0 0 12px;
-  font-size: .83rem;
-  color: var(--cm-text-light);
+  font-size: .85rem;
+  color: var(--cm-text-muted);
 }
 
-/* ── Plans (inside a category panel) ────────────────────────────── */
-.cm-plans {
+/* ── Plans ──────────────────────────────────────────────────────── */
+.cm-form-wrap .cm-plans {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.cm-plan {
+/* The plan row is a <label> — reset theme label styling too. */
+.cm-form-wrap .cm-plan {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 11px;
+  margin: 0;
   padding: 12px 14px;
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-sm);
+  background: var(--cm-surface);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
   cursor: pointer;
-  border: 1.5px solid var(--cm-border);
-  border-radius: var(--cm-radius);
-  background: var(--cm-bg);
-  transition: border-color var(--cm-transition), background var(--cm-transition);
+  transition: border-color var(--cm-speed), background var(--cm-speed);
 }
-.cm-plan:hover {
-  border-color: color-mix(in srgb, var(--cm-accent-dark) 45%, var(--cm-border));
+.cm-form-wrap .cm-plan:hover { border-color: var(--cm-border-dark); background: var(--cm-surface-alt); }
+
+.cm-form-wrap .cm-plan--selected {
+  border-color: var(--cm-brand);
+  background: var(--cm-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--cm-brand);
 }
 
-.cm-plan--selected {
-  border-color: var(--cm-accent-dark);
-  background: color-mix(in srgb, var(--cm-accent-dark) 6%, transparent);
-}
-
-.cm-plan__check {
-  margin: 2px 0 0;
-  flex-shrink: 0;
+.cm-form-wrap .cm-plan__check {
   width: 17px;
   height: 17px;
-  accent-color: var(--cm-accent-dark);
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--cm-brand);
   cursor: pointer;
 }
 
-.cm-plan__text {
+.cm-form-wrap .cm-plan__text {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  line-height: 1.4;
   min-width: 0;
 }
 
-.cm-plan__name {
-  font-weight: 600;
-  font-size: .95rem;
-  color: var(--cm-text);
+.cm-form-wrap .cm-plan__name {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  font-size: .95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--cm-text);
+  text-transform: none;
+  letter-spacing: normal;
+  text-decoration: none;
 }
 
-.cm-plan__badge {
-  font-size: .65rem;
+.cm-form-wrap .cm-plan__badge {
+  font-size: .62rem;
   font-weight: 700;
-  letter-spacing: .05em;
+  line-height: 1;
+  letter-spacing: .04em;
   text-transform: uppercase;
   color: #fff;
   background: var(--cm-accent);
-  padding: 2px 8px;
-  border-radius: 100px;
+  padding: 4px 8px;
+  border-radius: 3px;
 }
 
-.cm-plan__meta {
+.cm-form-wrap .cm-plan__meta {
   font-size: .875rem;
-  color: var(--cm-text-light);
+  color: var(--cm-text-muted);
 }
 
-/* Price inherits WooCommerce's markup — keep it inline and solid */
-.cm-plan__meta .woocommerce-Price-amount,
-.cm-plan__meta .amount {
+/* WooCommerce renders prices in its own span — keep it inline and solid */
+.cm-form-wrap .cm-plan__meta .woocommerce-Price-amount,
+.cm-form-wrap .cm-plan__meta .amount,
+.cm-form-wrap .cm-plan__meta bdi {
   color: var(--cm-text);
   font-weight: 700;
+  text-decoration: none;
 }
 
-.cm-plan__perks {
+.cm-form-wrap .cm-plan__perks {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  margin-top: 3px;
+  gap: 3px;
+  margin-top: 4px;
 }
 
-.cm-plan__perk {
-  font-size: .8rem;
-  color: var(--cm-text-light);
-  padding-left: 16px;
+.cm-form-wrap .cm-plan__perk {
   position: relative;
+  padding-left: 17px;
+  font-size: .82rem;
+  color: var(--cm-text-muted);
 }
-.cm-plan__perk::before {
-  content: '✓';
+.cm-form-wrap .cm-plan__perk::before {
+  content: '';
   position: absolute;
-  left: 0;
-  color: var(--cm-accent-dark);
-  font-weight: 700;
+  left: 2px;
+  top: .42em;
+  width: 8px;
+  height: 4px;
+  border-left: 2px solid var(--cm-brand);
+  border-bottom: 2px solid var(--cm-brand);
+  transform: rotate(-45deg);
 }
 
-.cm-plan__desc {
-  font-size: .8rem;
-  color: var(--cm-text-light);
-  margin-top: 2px;
+.cm-form-wrap .cm-plan__desc {
+  margin: 2px 0 0;
+  font-size: .82rem;
+  color: var(--cm-text-muted);
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+ * THEME ARMOUR
+ *
+ * Themes and page builders commonly declare button/label styles with
+ * !important, which `all: unset` cannot beat — a normal declaration always
+ * loses to an important one. These rules re-assert only the properties that
+ * visibly break the form when a theme forces them: pill radii on the
+ * accordion headers, brand backgrounds, and uppercase inherited into labels.
+ *
+ * Kept in one block, last in the file, so it is easy to audit or remove.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* Uppercase / letter-spacing inherits into every child of a styled <label>,
+   so it is cleared wholesale and re-enabled on the one element that wants it. */
+.cm-form-wrap,
+.cm-form-wrap *:not(.cm-plan__badge) {
+  text-transform: none !important;
+  letter-spacing: normal !important;
+}
+.cm-form-wrap .cm-plan__badge {
+  text-transform: uppercase !important;
+  letter-spacing: .04em !important;
+}
+
+/* Accordion headers — flat rows, never pills */
+.cm-form-wrap button.cm-accordion__header {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  padding: 15px 16px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--cm-surface) !important;
+  color: var(--cm-text) !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+}
+.cm-form-wrap button.cm-accordion__header:hover,
+.cm-form-wrap .cm-accordion__item--open > button.cm-accordion__header {
+  background: var(--cm-surface-alt) !important;
+}
+.cm-form-wrap .cm-accordion__item--open > button.cm-accordion__header {
+  border-bottom: 1px solid var(--cm-border) !important;
+}
+.cm-form-wrap .cm-accordion__title  { color: var(--cm-brand) !important; font-weight: 700 !important; }
+.cm-form-wrap .cm-accordion__subtitle { color: var(--cm-text-muted) !important; font-weight: 400 !important; }
+.cm-form-wrap .cm-accordion__selected {
+  background: var(--cm-brand) !important;
+  color: #fff !important;
+}
+
+/* Form buttons — our shape and colour, not the theme's */
+.cm-form-wrap button.cm-btn {
+  min-height: 0 !important;
+  border-radius: var(--cm-radius-sm) !important;
+  box-shadow: none !important;
+  font-size: .9rem !important;
+  font-weight: 600 !important;
+  padding: 12px 26px !important;
+}
+.cm-form-wrap button.cm-btn--primary {
+  background: var(--cm-brand) !important;
+  color: #fff !important;
+  border: 0 !important;
+}
+.cm-form-wrap button.cm-btn--primary:hover { background: var(--cm-brand-hover) !important; }
+.cm-form-wrap button.cm-btn--ghost {
+  background: transparent !important;
+  color: var(--cm-text-muted) !important;
+  border: 1px solid var(--cm-border-dark) !important;
+  padding: 12px 20px !important;
+}
+.cm-form-wrap button.cm-btn--ghost:hover { color: var(--cm-text) !important; }
+
+/* Plan rows are <label>s — themes colour and embolden those too */
+.cm-form-wrap label.cm-plan {
+  color: var(--cm-text) !important;
+  font-weight: 400 !important;
+}
+.cm-form-wrap .cm-plan__name  { color: var(--cm-text) !important; font-weight: 600 !important; }
+.cm-form-wrap .cm-plan__meta,
+.cm-form-wrap .cm-plan__desc,
+.cm-form-wrap .cm-plan__perk  { color: var(--cm-text-muted) !important; font-weight: 400 !important; }
+.cm-form-wrap .cm-plan__meta .woocommerce-Price-amount,
+.cm-form-wrap .cm-plan__meta .amount,
+.cm-form-wrap .cm-plan__meta bdi {
+  color: var(--cm-text) !important;
+  font-weight: 700 !important;
+}
+.cm-form-wrap .cm-plan__badge { color: #fff !important; background: var(--cm-accent) !important; }
+
+/* Field labels */
+.cm-form-wrap .cm-field > label { color: var(--cm-text) !important; font-weight: 600 !important; }
+.cm-form-wrap .cm-required { color: var(--cm-accent) !important; }
 
 /* ── Responsive ─────────────────────────────────────────────────── */
-@media (max-width: 480px) {
-  .cm-actions--split { flex-direction: column-reverse; gap: 10px; }
-  .cm-btn { width: 100%; }
-  .cm-accordion__header { padding: 14px; }
-  .cm-accordion__panel { padding: 4px 14px 14px; }
-  .cm-accordion__selected { max-width: 100px; }
+@media (max-width: 520px) {
+  .cm-form-wrap .cm-actions--split { flex-direction: column-reverse; gap: 10px; }
+  .cm-form-wrap .cm-btn { width: 100%; }
+  .cm-form-wrap .cm-accordion__header { padding: 14px; }
+  .cm-form-wrap .cm-accordion__panel { padding: 12px 12px 14px; }
+  .cm-form-wrap .cm-accordion__selected { max-width: 92px; }
+  .cm-form-wrap .cm-step__label { font-size: .8rem; }
 }
