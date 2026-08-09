@@ -33,6 +33,13 @@ class CM_API {
     }
 
     public static function register_routes() {
+        // Categories (optionally with their packages nested).
+        register_rest_route( self::NS, '/categories', [
+            'methods'             => 'GET',
+            'callback'            => [ __CLASS__, 'get_categories' ],
+            'permission_callback' => [ __CLASS__, 'require_read' ],
+        ] );
+
         // Packages.
         register_rest_route( self::NS, '/packages', [
             'methods'             => 'GET',
@@ -158,6 +165,21 @@ class CM_API {
 
     public static function require_admin( WP_REST_Request $request ) {
         return current_user_can( 'manage_options' );
+    }
+
+    // -------------------------------------------------------------------------
+    // Categories
+    // -------------------------------------------------------------------------
+
+    public static function get_categories( WP_REST_Request $request ) {
+        $active     = in_array( $request->get_param( 'active' ), [ '1', 'true' ], true );
+        $with_pkgs  = in_array( $request->get_param( 'with_packages' ), [ '1', 'true' ], true );
+
+        return rest_ensure_response(
+            $with_pkgs
+                ? CM_Categories::get_with_packages( $active )
+                : CM_Categories::get_all( $active )
+        );
     }
 
     // -------------------------------------------------------------------------

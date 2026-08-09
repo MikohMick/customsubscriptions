@@ -46,6 +46,20 @@
   font-size: .9rem;
 }
 
+/* ── Grouped package headings ──────────────────────────────────── */
+.cm-group-heading {
+  margin: 28px 0 8px;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.cm-group-heading__sub {
+  font-size: .82rem;
+  font-weight: 400;
+  color: #666;
+}
+
 /* ── Table ─────────────────────────────────────────────────────── */
 .cm-table th { font-weight: 600; }
 .cm-row-actions { white-space: nowrap; }
@@ -66,6 +80,7 @@
 .cm-status--expired, .cm-badge--expired    { background: #fce8e6; color: #c0392b; }
 .cm-badge--unlimited                       { background: #e8f0fe; color: #1a5276; }
 .cm-badge--inactive                        { background: #f5f5f5; color: #666; }
+.cm-badge--popular                         { background: #fce8e6; color: #a02c2c; }
 .cm-badge--read                            { background: #e8f0fe; color: #1a5276; }
 .cm-badge--write                           { background: #fff3e0; color: #8a4500; }
 .cm-badge--read_write                      { background: #e6f4ea; color: #1e6b34; }

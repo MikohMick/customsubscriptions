@@ -62,23 +62,19 @@
 
   var $pkgModal = $('#cm-package-modal');
 
-  function renderPackageRow(pkg) {
-    var sessionsHtml = parseInt(pkg.sessions) === 0
-      ? '<span class="cm-badge cm-badge--unlimited">' + cmAdmin.i18n.unlimited + '</span>'
-      : escHtml(pkg.sessions);
+  // Tracks the category a package had when the modal opened, so we know
+  // whether the row needs to move to a different table on save.
+  var pkgCategoryOnOpen = null;
 
-    var activeHtml = parseInt(pkg.active)
-      ? '<span class="cm-badge cm-badge--active">Yes</span>'
-      : '<span class="cm-badge cm-badge--inactive">No</span>';
+  function pluralizeUnit(unit) {
+    unit = (unit || 'Session').trim();
+    return /(s|x|z|ch|sh)$/i.test(unit) ? unit + 'es' : unit + 's';
+  }
 
-    return {
-      name:        '<strong>' + escHtml(pkg.name) + '</strong>',
-      description: escHtml((pkg.description || '').substring(0, 60)),
-      sessions:    sessionsHtml,
-      price:       escHtml(formatPrice(pkg.price)),
-      sort_order:  escHtml(pkg.sort_order),
-      active:      activeHtml,
-    };
+  function sessionsLabel(sessions, unit) {
+    sessions = parseInt(sessions, 10) || 0;
+    if (sessions === 0) return cmAdmin.i18n.unlimited;
+    return sessions + ' ' + (sessions === 1 ? (unit || 'Session') : pluralizeUnit(unit));
   }
 
   // Open for add.
@@ -86,6 +82,10 @@
     $('#cm-pkg-id').val('0');
     $('#cm-package-form')[0].reset();
     $('#cm-pkg-active').prop('checked', true);
+    $('#cm-pkg-highlight').prop('checked', false);
+    $('#cm-pkg-unit').val('Session');
+    $('#cm-pkg-category').val('0');
+    pkgCategoryOnOpen = null;
     $('#cm-package-modal-title').text('Add Package');
     clearModalNotice($pkgModal);
     openModal($pkgModal);
@@ -95,14 +95,22 @@
   $(document).on('click', '.cm-btn-edit-package', function () {
     var pkg = $(this).data('package');               // jQuery auto-parses JSON data attrs
     if (typeof pkg === 'string') pkg = JSON.parse(pkg); // safety for .attr() writes
+
     $('#cm-pkg-id').val(pkg.id);
     $('#cm-pkg-name').val(pkg.name);
     $('#cm-pkg-price').val(pkg.price);
     $('#cm-pkg-sessions').val(pkg.sessions);
+    $('#cm-pkg-unit').val(pkg.session_unit || 'Session');
     $('#cm-pkg-order').val(pkg.sort_order);
-    $('#cm-pkg-desc').val(pkg.description);
+    $('#cm-pkg-desc').val(pkg.description || '');
+    $('#cm-pkg-perks').val(pkg.perks || '');
+    $('#cm-pkg-category').val(String(parseInt(pkg.category_id, 10) || 0));
     $('#cm-pkg-active').prop('checked', parseInt(pkg.active) === 1);
-    $('#cm-package-modal-title').text('Edit Package');
+    $('#cm-pkg-highlight').prop('checked', parseInt(pkg.highlight) === 1);
+
+    pkgCategoryOnOpen = parseInt(pkg.category_id, 10) || 0;
+
+    $('#cm-package-modal-title').text('Edit Package — ' + pkg.name);
     clearModalNotice($pkgModal);
     openModal($pkgModal);
   });
@@ -114,15 +122,19 @@
     var $btn  = $(this).find('button[type="submit"]').prop('disabled', true).text('Saving…');
 
     $.post(cmAdmin.ajaxUrl, {
-      action:      'cm_admin_save_package',
-      nonce:       nonce,
-      id:          $('#cm-pkg-id').val(),
-      name:        $('#cm-pkg-name').val(),
-      price:       $('#cm-pkg-price').val(),
-      sessions:    $('#cm-pkg-sessions').val(),
-      sort_order:  $('#cm-pkg-order').val(),
-      description: $('#cm-pkg-desc').val(),
-      active:      $('#cm-pkg-active').is(':checked') ? 1 : 0,
+      action:       'cm_admin_save_package',
+      nonce:        nonce,
+      id:           $('#cm-pkg-id').val(),
+      name:         $('#cm-pkg-name').val(),
+      category_id:  $('#cm-pkg-category').val(),
+      price:        $('#cm-pkg-price').val(),
+      sessions:     $('#cm-pkg-sessions').val(),
+      session_unit: $('#cm-pkg-unit').val(),
+      sort_order:   $('#cm-pkg-order').val(),
+      description:  $('#cm-pkg-desc').val(),
+      perks:        $('#cm-pkg-perks').val(),
+      active:       $('#cm-pkg-active').is(':checked') ? 1 : 0,
+      highlight:    $('#cm-pkg-highlight').is(':checked') ? 1 : 0,
     }, function (res) {
       if (!res.success) {
         showModalNotice($pkgModal, res.data.message || cmAdmin.i18n.error, 'error');
@@ -131,27 +143,41 @@
 
       showModalNotice($pkgModal, cmAdmin.i18n.saved, 'success');
 
-      if (isNew) {
-        // New package — reload to get the full row with product link.
+      var pkg         = res.data.package;
+      var newCategory = parseInt(pkg.category_id, 10) || 0;
+
+      // New package, or one that moved category, changes the table grouping —
+      // a reload is the only way to land it under the right heading.
+      if (isNew || newCategory !== pkgCategoryOnOpen) {
         setTimeout(function () { location.reload(); }, 700);
         return;
       }
 
-      // Edit — update row in place.
-      var pkg  = res.data.package;
-      var $row = $('#cm-package-row-' + pkg.id);
-      var cells = renderPackageRow(pkg);
+      // Same category — update the row in place.
+      var $row  = $('#cm-package-row-' + pkg.id);
+      var perks = (pkg.perks || '').split('\n').filter(function (p) { return p.trim(); });
 
-      $row.find('td').eq(0).html(cells.name);
-      $row.find('td').eq(1).html(cells.description);
-      $row.find('td').eq(2).html(cells.sessions);
-      $row.find('td').eq(3).html(cells.price);
-      $row.find('td').eq(4).html(cells.sort_order);
-      $row.find('td').eq(5).html(cells.active);
+      var nameHtml = '<strong>' + escHtml(pkg.name) + '</strong>';
+      if (parseInt(pkg.highlight)) {
+        nameHtml += ' <span class="cm-badge cm-badge--popular">Popular</span>';
+      }
 
-      // Refresh the data attribute AND jQuery's internal cache for next edit.
-      var $editBtn = $row.find('.cm-btn-edit-package');
-      $editBtn.attr('data-package', JSON.stringify(pkg)).data('package', pkg);
+      var sessionsHtml = parseInt(pkg.sessions) === 0
+        ? '<span class="cm-badge cm-badge--unlimited">' + cmAdmin.i18n.unlimited + '</span>'
+        : escHtml(sessionsLabel(pkg.sessions, pkg.session_unit));
+
+      $row.find('td').eq(0).html(nameHtml);
+      $row.find('td').eq(1).html(sessionsHtml);
+      $row.find('td').eq(2).text(formatPrice(pkg.price));
+      $row.find('td').eq(3).text(perks.length ? perks.length + ' listed' : '—');
+      $row.find('td').eq(4).text(pkg.sort_order);
+      $row.find('td').eq(5).html(parseInt(pkg.active)
+        ? '<span class="cm-badge cm-badge--active">Yes</span>'
+        : '<span class="cm-badge cm-badge--inactive">No</span>');
+
+      $row.find('.cm-btn-edit-package')
+        .attr('data-package', JSON.stringify(pkg))
+        .data('package', pkg);
 
       flashRow($row);
       setTimeout(function () { closeModal($pkgModal); }, 700);
@@ -170,6 +196,98 @@
     $.post(cmAdmin.ajaxUrl, { action: 'cm_admin_delete_package', nonce: nonce, id: id }, function (res) {
       if (res.success) {
         $('#cm-package-row-' + id).fadeOut(300, function () { $(this).remove(); });
+      } else {
+        alert(res.data.message || cmAdmin.i18n.error);
+      }
+    });
+  });
+
+  // ── Categories page ───────────────────────────────────────────────
+
+  var $catModal = $('#cm-category-modal');
+
+  $(document).on('click', '.cm-btn-add-category', function () {
+    $('#cm-cat-id').val('0');
+    $('#cm-category-form')[0].reset();
+    $('#cm-cat-active').prop('checked', true);
+    $('#cm-category-modal-title').text('Add Category');
+    clearModalNotice($catModal);
+    openModal($catModal);
+  });
+
+  $(document).on('click', '.cm-btn-edit-category', function () {
+    var cat = $(this).data('category');
+    if (typeof cat === 'string') cat = JSON.parse(cat);
+
+    $('#cm-cat-id').val(cat.id);
+    $('#cm-cat-name').val(cat.name);
+    $('#cm-cat-subtitle').val(cat.subtitle || '');
+    $('#cm-cat-desc').val(cat.description || '');
+    $('#cm-cat-order').val(cat.sort_order);
+    $('#cm-cat-active').prop('checked', parseInt(cat.active) === 1);
+
+    $('#cm-category-modal-title').text('Edit Category — ' + cat.name);
+    clearModalNotice($catModal);
+    openModal($catModal);
+  });
+
+  $('#cm-category-form').on('submit', function (e) {
+    e.preventDefault();
+    var isNew = $('#cm-cat-id').val() === '0';
+    var $btn  = $(this).find('button[type="submit"]').prop('disabled', true).text('Saving…');
+
+    $.post(cmAdmin.ajaxUrl, {
+      action:      'cm_admin_save_category',
+      nonce:       nonce,
+      id:          $('#cm-cat-id').val(),
+      name:        $('#cm-cat-name').val(),
+      subtitle:    $('#cm-cat-subtitle').val(),
+      description: $('#cm-cat-desc').val(),
+      sort_order:  $('#cm-cat-order').val(),
+      active:      $('#cm-cat-active').is(':checked') ? 1 : 0,
+    }, function (res) {
+      if (!res.success) {
+        showModalNotice($catModal, res.data.message || cmAdmin.i18n.error, 'error');
+        return;
+      }
+
+      showModalNotice($catModal, cmAdmin.i18n.saved, 'success');
+
+      if (isNew) {
+        setTimeout(function () { location.reload(); }, 700);
+        return;
+      }
+
+      var cat  = res.data.category;
+      var $row = $('#cm-category-row-' + cat.id);
+
+      $row.find('td').eq(0).html('<strong>' + escHtml(cat.name) + '</strong>');
+      $row.find('td').eq(1).text(cat.subtitle || '');
+      $row.find('td').eq(3).text(cat.sort_order);
+      $row.find('td').eq(4).html(parseInt(cat.active)
+        ? '<span class="cm-badge cm-badge--active">Yes</span>'
+        : '<span class="cm-badge cm-badge--inactive">No</span>');
+
+      $row.find('.cm-btn-edit-category')
+        .attr('data-category', JSON.stringify(cat))
+        .data('category', cat);
+
+      flashRow($row);
+      setTimeout(function () { closeModal($catModal); }, 700);
+
+    }).fail(function () {
+      showModalNotice($catModal, cmAdmin.i18n.error, 'error');
+    }).always(function () {
+      $btn.prop('disabled', false).text('Save Category');
+    });
+  });
+
+  $(document).on('click', '.cm-btn-delete-category', function () {
+    if (!confirm(cmAdmin.i18n.confirm_delete_category)) return;
+    var id = $(this).data('id');
+    $.post(cmAdmin.ajaxUrl, { action: 'cm_admin_delete_category', nonce: nonce, id: id }, function (res) {
+      if (res.success) {
+        $('#cm-category-row-' + id).fadeOut(300, function () { $(this).remove(); });
       } else {
         alert(res.data.message || cmAdmin.i18n.error);
       }

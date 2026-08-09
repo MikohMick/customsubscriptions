@@ -10,6 +10,8 @@ class CM_Admin {
         // AJAX actions for admin operations.
         add_action( 'wp_ajax_cm_admin_save_package',   [ __CLASS__, 'ajax_save_package' ] );
         add_action( 'wp_ajax_cm_admin_delete_package', [ __CLASS__, 'ajax_delete_package' ] );
+        add_action( 'wp_ajax_cm_admin_save_category',   [ __CLASS__, 'ajax_save_category' ] );
+        add_action( 'wp_ajax_cm_admin_delete_category', [ __CLASS__, 'ajax_delete_category' ] );
         add_action( 'wp_ajax_cm_admin_save_member',    [ __CLASS__, 'ajax_save_member' ] );
         add_action( 'wp_ajax_cm_admin_delete_member',  [ __CLASS__, 'ajax_delete_member' ] );
         add_action( 'wp_ajax_cm_admin_use_session',    [ __CLASS__, 'ajax_use_session' ] );
@@ -47,6 +49,14 @@ class CM_Admin {
         );
         add_submenu_page(
             'cm-members',
+            __( 'Categories', 'custom-memberships' ),
+            __( 'Categories', 'custom-memberships' ),
+            'manage_woocommerce',
+            'cm-categories',
+            [ __CLASS__, 'page_categories' ]
+        );
+        add_submenu_page(
+            'cm-members',
             __( 'API Keys', 'custom-memberships' ),
             __( 'API Keys', 'custom-memberships' ),
             'manage_options',
@@ -71,6 +81,7 @@ class CM_Admin {
         $pages = [
             'toplevel_page_cm-members',
             'memberships_page_cm-packages',
+            'memberships_page_cm-categories',
             'memberships_page_cm-api-keys',
             'memberships_page_cm-settings',
         ];
@@ -97,6 +108,7 @@ class CM_Admin {
             'dateFormat'     => get_option( 'date_format' ),
             'i18n'           => [
                 'confirm_delete' => __( 'Are you sure? This cannot be undone.', 'custom-memberships' ),
+                'confirm_delete_category' => __( 'Delete this category? Its packages will be kept but moved to Uncategorized.', 'custom-memberships' ),
                 'saved'          => __( 'Saved!', 'custom-memberships' ),
                 'deleted'        => __( 'Deleted.', 'custom-memberships' ),
                 'error'          => __( 'An error occurred. Please try again.', 'custom-memberships' ),
@@ -117,6 +129,10 @@ class CM_Admin {
 
     public static function page_packages() {
         require CM_PLUGIN_DIR . 'admin/views/packages.php';
+    }
+
+    public static function page_categories() {
+        require CM_PLUGIN_DIR . 'admin/views/categories.php';
     }
 
     public static function page_api_keys() {
@@ -145,12 +161,16 @@ class CM_Admin {
 
         $id   = intval( $_POST['id'] ?? 0 );
         $data = [
-            'name'        => sanitize_text_field( $_POST['name'] ?? '' ),
-            'description' => sanitize_textarea_field( $_POST['description'] ?? '' ),
-            'sessions'    => intval( $_POST['sessions'] ?? 0 ),
-            'price'       => floatval( $_POST['price'] ?? 0 ),
-            'sort_order'  => intval( $_POST['sort_order'] ?? 0 ),
-            'active'      => intval( $_POST['active'] ?? 1 ),
+            'name'         => sanitize_text_field( $_POST['name'] ?? '' ),
+            'description'  => sanitize_textarea_field( $_POST['description'] ?? '' ),
+            'perks'        => sanitize_textarea_field( $_POST['perks'] ?? '' ),
+            'sessions'     => intval( $_POST['sessions'] ?? 0 ),
+            'session_unit' => sanitize_text_field( $_POST['session_unit'] ?? 'Session' ),
+            'price'        => floatval( $_POST['price'] ?? 0 ),
+            'sort_order'   => intval( $_POST['sort_order'] ?? 0 ),
+            'active'       => intval( $_POST['active'] ?? 1 ),
+            'highlight'    => intval( $_POST['highlight'] ?? 0 ),
+            'category_id'  => intval( $_POST['category_id'] ?? 0 ),
         ];
 
         if ( ! $data['name'] ) {
@@ -164,6 +184,51 @@ class CM_Admin {
         }
 
         wp_send_json_success( [ 'id' => $id, 'package' => CM_Packages::get( $id ) ] );
+    }
+
+    // -------------------------------------------------------------------------
+    // AJAX: Categories
+    // -------------------------------------------------------------------------
+
+    public static function ajax_save_category() {
+        check_ajax_referer( 'cm_admin', 'nonce' );
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_send_json_error( [ 'message' => 'Unauthorized.' ] );
+        }
+
+        $id   = intval( $_POST['id'] ?? 0 );
+        $data = [
+            'name'        => sanitize_text_field( $_POST['name'] ?? '' ),
+            'subtitle'    => sanitize_text_field( $_POST['subtitle'] ?? '' ),
+            'description' => sanitize_textarea_field( $_POST['description'] ?? '' ),
+            'sort_order'  => intval( $_POST['sort_order'] ?? 0 ),
+            'active'      => intval( $_POST['active'] ?? 1 ),
+        ];
+
+        if ( ! $data['name'] ) {
+            wp_send_json_error( [ 'message' => 'Name is required.' ] );
+        }
+
+        if ( $id ) {
+            CM_Categories::update( $id, $data );
+        } else {
+            $id = CM_Categories::create( $data );
+        }
+
+        wp_send_json_success( [ 'id' => $id, 'category' => CM_Categories::get( $id ) ] );
+    }
+
+    public static function ajax_delete_category() {
+        check_ajax_referer( 'cm_admin', 'nonce' );
+        if ( ! current_user_can( 'manage_woocommerce' ) ) {
+            wp_send_json_error( [ 'message' => 'Unauthorized.' ] );
+        }
+        $id = intval( $_POST['id'] ?? 0 );
+        if ( ! $id ) {
+            wp_send_json_error( [ 'message' => 'Invalid ID.' ] );
+        }
+        CM_Categories::delete( $id );
+        wp_send_json_success();
     }
 
     public static function ajax_delete_package() {

@@ -170,6 +170,68 @@
 
   $('#cm-back-btn').on('click', function () { goToStep1(); });
 
+  // ── Accordion ─────────────────────────────────────────────────────
+
+  function setAccordionOpen($item, open) {
+    var $header = $item.find('.cm-accordion__header');
+    var $panel  = $item.find('.cm-accordion__panel');
+
+    $item.toggleClass('cm-accordion__item--open', open);
+    $header.attr('aria-expanded', open ? 'true' : 'false');
+    $panel.prop('hidden', !open);
+  }
+
+  wrap.on('click', '.cm-accordion__header', function () {
+    var $item = $(this).closest('.cm-accordion__item');
+    var isOpen = $item.hasClass('cm-accordion__item--open');
+
+    // One panel open at a time keeps the list short and scannable.
+    wrap.find('.cm-accordion__item').each(function () {
+      setAccordionOpen($(this), false);
+    });
+
+    if (!isOpen) setAccordionOpen($item, true);
+  });
+
+  // ── Plan selection — checkbox styling, single-select behaviour ────
+  // Only one plan can be bought at a time (the cart holds one package),
+  // so checking a box clears every other box across all categories.
+
+  function refreshCategoryLabels() {
+    wrap.find('.cm-accordion__item').each(function () {
+      var $item  = $(this);
+      var $badge = $item.find('.cm-accordion__selected');
+      var $picked = $item.find('.cm-plan__check:checked');
+
+      if ($picked.length) {
+        $badge.text($picked.data('name')).prop('hidden', false);
+        $item.addClass('cm-accordion__item--has-selection');
+      } else {
+        $badge.prop('hidden', true).text('');
+        $item.removeClass('cm-accordion__item--has-selection');
+      }
+    });
+  }
+
+  wrap.on('change', '.cm-plan__check', function () {
+    var $this = $(this);
+
+    if ($this.is(':checked')) {
+      // Clear all others — including ones in other categories.
+      wrap.find('.cm-plan__check').not($this).prop('checked', false);
+      clearNotices();
+    }
+
+    wrap.find('.cm-plan').removeClass('cm-plan--selected');
+    wrap.find('.cm-plan__check:checked').closest('.cm-plan').addClass('cm-plan--selected');
+
+    refreshCategoryLabels();
+  });
+
+  // Open the first category by default so the list isn't a wall of headers.
+  var $firstItem = wrap.find('.cm-accordion__item').first();
+  if ($firstItem.length) setAccordionOpen($firstItem, true);
+
   // ── Step 2 submit ─────────────────────────────────────────────────
 
   $('#cm-form-step2').on('submit', function (e) {

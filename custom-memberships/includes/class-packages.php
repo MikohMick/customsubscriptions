@@ -13,16 +13,44 @@ class CM_Packages {
 
     public static function get_all( $active_only = false ) {
         global $wpdb;
-        $where = $active_only ? 'WHERE active = 1' : '';
+        $where = $active_only ? 'WHERE p.active = 1' : '';
         return $wpdb->get_results(
-            "SELECT * FROM " . CM_TABLE_PACKAGES . " $where ORDER BY sort_order ASC, id ASC"
+            "SELECT p.*, c.name AS category_name
+             FROM " . CM_TABLE_PACKAGES . " p
+             LEFT JOIN " . CM_TABLE_CATEGORIES . " c ON c.id = p.category_id
+             $where
+             ORDER BY c.sort_order ASC, p.sort_order ASC, p.id ASC"
         );
+    }
+
+    public static function get_by_category( $category_id, $active_only = false ) {
+        global $wpdb;
+        $sql = "SELECT * FROM " . CM_TABLE_PACKAGES . " WHERE category_id = %d";
+        if ( $active_only ) {
+            $sql .= ' AND active = 1';
+        }
+        $sql .= ' ORDER BY sort_order ASC, id ASC';
+        return $wpdb->get_results( $wpdb->prepare( $sql, $category_id ) );
+    }
+
+    public static function get_uncategorized( $active_only = false ) {
+        global $wpdb;
+        $sql = "SELECT * FROM " . CM_TABLE_PACKAGES . " WHERE (category_id IS NULL OR category_id = 0)";
+        if ( $active_only ) {
+            $sql .= ' AND active = 1';
+        }
+        $sql .= ' ORDER BY sort_order ASC, id ASC';
+        return $wpdb->get_results( $sql );
     }
 
     public static function get( $id ) {
         global $wpdb;
         return $wpdb->get_row( $wpdb->prepare(
-            "SELECT * FROM " . CM_TABLE_PACKAGES . " WHERE id = %d", $id
+            "SELECT p.*, c.name AS category_name
+             FROM " . CM_TABLE_PACKAGES . " p
+             LEFT JOIN " . CM_TABLE_CATEGORIES . " c ON c.id = p.category_id
+             WHERE p.id = %d",
+            $id
         ) );
     }
 
@@ -105,19 +133,57 @@ class CM_Packages {
 
     private static function sanitize( array $data ) {
         $clean = [];
-        if ( isset( $data['name'] ) )        $clean['name']        = sanitize_text_field( $data['name'] );
-        if ( isset( $data['description'] ) ) $clean['description'] = sanitize_textarea_field( $data['description'] );
-        if ( isset( $data['sessions'] ) )    $clean['sessions']    = max( 0, intval( $data['sessions'] ) );
-        if ( isset( $data['price'] ) )       $clean['price']       = round( floatval( $data['price'] ), 2 );
-        if ( isset( $data['sort_order'] ) )  $clean['sort_order']  = intval( $data['sort_order'] );
-        if ( isset( $data['active'] ) )      $clean['active']      = $data['active'] ? 1 : 0;
+        if ( isset( $data['name'] ) )         $clean['name']         = sanitize_text_field( $data['name'] );
+        if ( isset( $data['description'] ) )  $clean['description']  = sanitize_textarea_field( $data['description'] );
+        if ( isset( $data['perks'] ) )        $clean['perks']        = sanitize_textarea_field( $data['perks'] );
+        if ( isset( $data['sessions'] ) )     $clean['sessions']     = max( 0, intval( $data['sessions'] ) );
+        if ( isset( $data['session_unit'] ) ) $clean['session_unit'] = sanitize_text_field( $data['session_unit'] ) ?: 'Session';
+        if ( isset( $data['price'] ) )        $clean['price']        = round( floatval( $data['price'] ), 2 );
+        if ( isset( $data['sort_order'] ) )   $clean['sort_order']   = intval( $data['sort_order'] );
+        if ( isset( $data['active'] ) )       $clean['active']       = $data['active'] ? 1 : 0;
+        if ( isset( $data['highlight'] ) )    $clean['highlight']    = $data['highlight'] ? 1 : 0;
+        if ( array_key_exists( 'category_id', $data ) ) {
+            $clean['category_id'] = intval( $data['category_id'] ) ?: null;
+        }
         return $clean;
     }
 
-    public static function sessions_label( $sessions ) {
-        if ( (int) $sessions === 0 ) {
+    /**
+     * Pluralise a session unit: Class → Classes, Session → Sessions.
+     */
+    public static function pluralize_unit( $unit ) {
+        $unit = trim( (string) $unit );
+        if ( $unit === '' ) {
+            return 'Sessions';
+        }
+        if ( preg_match( '/(s|x|z|ch|sh)$/i', $unit ) ) {
+            return $unit . 'es';
+        }
+        return $unit . 's';
+    }
+
+    /**
+     * Human label for a package's session allowance,
+     * e.g. "Unlimited", "1 Class", "8 Reformer Classes".
+     */
+    public static function sessions_label( $sessions, $unit = 'Session' ) {
+        $sessions = (int) $sessions;
+        if ( $sessions === 0 ) {
             return __( 'Unlimited', 'custom-memberships' );
         }
-        return sprintf( _n( '%d Session', '%d Sessions', $sessions, 'custom-memberships' ), $sessions );
+        $unit = $unit ?: 'Session';
+        return $sessions === 1
+            ? $sessions . ' ' . $unit
+            : $sessions . ' ' . self::pluralize_unit( $unit );
+    }
+
+    /**
+     * Perks stored one-per-line, returned as a clean array.
+     */
+    public static function perks_list( $perks ) {
+        if ( empty( $perks ) ) {
+            return [];
+        }
+        return array_values( array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n/', $perks ) ) ) );
     }
 }

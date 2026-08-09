@@ -8,18 +8,35 @@ class CM_Database {
         $charset = $wpdb->get_charset_collate();
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-        // Packages table.
-        dbDelta( "CREATE TABLE " . CM_TABLE_PACKAGES . " (
+        // Categories table.
+        dbDelta( "CREATE TABLE " . CM_TABLE_CATEGORIES . " (
             id          BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
             name        VARCHAR(191)    NOT NULL,
+            subtitle    VARCHAR(191)    DEFAULT NULL COMMENT 'e.g. Yoga + Mat Pilates',
             description TEXT            DEFAULT NULL,
-            sessions    INT             NOT NULL DEFAULT 0 COMMENT '0 = unlimited',
-            price       DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
-            product_id  BIGINT UNSIGNED DEFAULT NULL COMMENT 'WooCommerce product ID',
             sort_order  INT             NOT NULL DEFAULT 0,
             active      TINYINT(1)      NOT NULL DEFAULT 1,
             created_at  DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id)
+        ) $charset;" );
+
+        // Packages table.
+        dbDelta( "CREATE TABLE " . CM_TABLE_PACKAGES . " (
+            id           BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            category_id  BIGINT UNSIGNED DEFAULT NULL,
+            name         VARCHAR(191)    NOT NULL,
+            description  TEXT            DEFAULT NULL,
+            sessions     INT             NOT NULL DEFAULT 0 COMMENT '0 = unlimited',
+            session_unit VARCHAR(50)     NOT NULL DEFAULT 'Session' COMMENT 'e.g. Class, Reformer Class',
+            perks        TEXT            DEFAULT NULL COMMENT 'One perk per line, shown as bullets',
+            highlight    TINYINT(1)      NOT NULL DEFAULT 0 COMMENT 'Show a Most Popular badge',
+            price        DECIMAL(10,2)   NOT NULL DEFAULT 0.00,
+            product_id   BIGINT UNSIGNED DEFAULT NULL COMMENT 'WooCommerce product ID',
+            sort_order   INT             NOT NULL DEFAULT 0,
+            active       TINYINT(1)      NOT NULL DEFAULT 1,
+            created_at   DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            KEY idx_category (category_id)
         ) $charset;" );
 
         // Members table.
@@ -58,86 +75,120 @@ class CM_Database {
 
         update_option( 'cm_db_version', CM_VERSION );
 
-        // Seed demo packages on first install only.
+        // Seed the FlowForm rate card on first install only.
         self::maybe_seed_packages();
     }
 
+    /**
+     * Seed categories + packages from the FlowForm rate card.
+     * Only runs when the categories table is empty, so it never
+     * duplicates or overwrites anything the admin has set up.
+     */
     public static function maybe_seed_packages() {
         global $wpdb;
 
-        // Only seed if no packages exist yet.
-        $count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . CM_TABLE_PACKAGES );
-        if ( $count > 0 ) {
+        if ( (int) $wpdb->get_var( "SELECT COUNT(*) FROM " . CM_TABLE_CATEGORIES ) > 0 ) {
             return;
         }
 
-        $packages = [
-            // ── Class Rates (individual sessions) ─────────────────────────────
+        $catalog = [
             [
-                'name'        => 'Drop-In Class',
-                'description' => 'Single session — perfect for trying us out.',
-                'sessions'    => 1,
-                'price'       => 1950.00,
-                'sort_order'  => 1,
+                'category' => [
+                    'name'        => 'FlowForm Essentials',
+                    'subtitle'    => 'Yoga + Mat Pilates',
+                    'description' => 'Perfect for building a steady practice with yoga and mat pilates.',
+                    'sort_order'  => 1,
+                ],
+                'packages' => [
+                    [ 'name' => 'Drop-In Class',      'sessions' => 1, 'session_unit' => 'Class', 'price' => 975.00,   'sort_order' => 1, 'description' => 'Single class — perfect for trying us out.' ],
+                    [ 'name' => '4 Classes',          'sessions' => 4, 'session_unit' => 'Class', 'price' => 3500.00,  'sort_order' => 2 ],
+                    [ 'name' => '8 Classes',          'sessions' => 8, 'session_unit' => 'Class', 'price' => 6500.00,  'sort_order' => 3 ],
+                    [ 'name' => 'Unlimited Monthly',  'sessions' => 0, 'session_unit' => 'Class', 'price' => 11000.00, 'sort_order' => 4, 'description' => 'Unlimited yoga and mat pilates for one month.' ],
+                ],
             ],
             [
-                'name'        => 'Private Session',
-                'description' => 'One-on-one personalised session.',
-                'sessions'    => 1,
-                'price'       => 3000.00,
-                'sort_order'  => 2,
+                'category' => [
+                    'name'        => 'FlowForm Signature',
+                    'subtitle'    => 'Reformer + Yoga + Mat Pilates',
+                    'description' => 'Reformer classes bundled with unlimited yoga and mat pilates.',
+                    'sort_order'  => 2,
+                ],
+                'packages' => [
+                    [
+                        'name'         => 'Signature Lite',
+                        'sessions'     => 4,
+                        'session_unit' => 'Reformer Class',
+                        'price'        => 15500.00,
+                        'sort_order'   => 1,
+                        'perks'        => "4 Reformer Classes\nUnlimited Yoga & Mat Pilates",
+                    ],
+                    [
+                        'name'         => 'Signature Plus',
+                        'sessions'     => 8,
+                        'session_unit' => 'Reformer Class',
+                        'price'        => 20000.00,
+                        'sort_order'   => 2,
+                        'highlight'    => 1,
+                        'perks'        => "8 Reformer Classes\nUnlimited Yoga & Mat Pilates",
+                    ],
+                ],
             ],
             [
-                'name'        => 'Private Couple Session',
-                'description' => 'Private session for two people.',
-                'sessions'    => 1,
-                'price'       => 5500.00,
-                'sort_order'  => 3,
-            ],
-            // ── Class Packages (bundles) ───────────────────────────────────────
-            [
-                'name'        => '3 Classes',
-                'description' => 'A great way to build a steady weekly routine.',
-                'sessions'    => 3,
-                'price'       => 5500.00,
-                'sort_order'  => 4,
-            ],
-            [
-                'name'        => '5 Classes',
-                'description' => 'More sessions, better value. Perfect for committed members.',
-                'sessions'    => 5,
-                'price'       => 9000.00,
-                'sort_order'  => 5,
+                'category' => [
+                    'name'        => 'Reformer Only',
+                    'subtitle'    => 'Reformer classes',
+                    'description' => 'Focused reformer training, priced per session or in packages.',
+                    'sort_order'  => 3,
+                ],
+                'packages' => [
+                    [ 'name' => 'Single Reformer Session', 'sessions' => 1,  'session_unit' => 'Reformer Class', 'price' => 1500.00,  'sort_order' => 1 ],
+                    [ 'name' => '4 Reformer Classes',      'sessions' => 4,  'session_unit' => 'Reformer Class', 'price' => 5500.00,  'sort_order' => 2 ],
+                    [ 'name' => '8 Reformer Classes',      'sessions' => 8,  'session_unit' => 'Reformer Class', 'price' => 11000.00, 'sort_order' => 3 ],
+                    [ 'name' => '12 Reformer Classes',     'sessions' => 12, 'session_unit' => 'Reformer Class', 'price' => 17000.00, 'sort_order' => 4 ],
+                ],
             ],
             [
-                'name'        => '8 Classes',
-                'description' => 'Best-value class bundle — most popular choice!',
-                'sessions'    => 8,
-                'price'       => 13000.00,
-                'sort_order'  => 6,
-            ],
-            // ── Unlimited Options ──────────────────────────────────────────────
-            [
-                'name'        => '30 Days Unlimited',
-                'description' => 'Unlimited classes for a full 30 days.',
-                'sessions'    => 0,
-                'price'       => 22000.00,
-                'sort_order'  => 7,
-            ],
-            [
-                'name'        => '3 Month Package',
-                'description' => 'Three months of unlimited classes — best value for dedicated members.',
-                'sessions'    => 0,
-                'price'       => 60000.00,
-                'sort_order'  => 8,
+                'category' => [
+                    'name'        => 'FlowForm Elite',
+                    'subtitle'    => 'Everything, unlimited',
+                    'description' => 'Full access to every class we offer, plus priority booking.',
+                    'sort_order'  => 4,
+                ],
+                'packages' => [
+                    [
+                        'name'         => 'FlowForm Elite Monthly',
+                        'sessions'     => 0,
+                        'session_unit' => 'Class',
+                        'price'        => 35000.00,
+                        'sort_order'   => 1,
+                        'perks'        => "Unlimited Reformer\nUnlimited Yoga\nUnlimited Mat Pilates\nPriority Booking",
+                    ],
+                ],
             ],
         ];
 
-        foreach ( $packages as $pkg ) {
-            $wpdb->insert( CM_TABLE_PACKAGES, array_merge( $pkg, [ 'active' => 1 ] ) );
-            $id = (int) $wpdb->insert_id;
-            if ( $id && class_exists( 'WooCommerce' ) ) {
-                CM_Packages::sync_product( $id );
+        foreach ( $catalog as $group ) {
+            $wpdb->insert( CM_TABLE_CATEGORIES, array_merge( $group['category'], [ 'active' => 1 ] ) );
+            $category_id = (int) $wpdb->insert_id;
+            if ( ! $category_id ) {
+                continue;
+            }
+
+            foreach ( $group['packages'] as $pkg ) {
+                $wpdb->insert( CM_TABLE_PACKAGES, array_merge( [
+                    'description'  => '',
+                    'perks'        => '',
+                    'highlight'    => 0,
+                    'session_unit' => 'Session',
+                ], $pkg, [
+                    'category_id' => $category_id,
+                    'active'      => 1,
+                ] ) );
+
+                $pkg_id = (int) $wpdb->insert_id;
+                if ( $pkg_id && class_exists( 'WooCommerce' ) ) {
+                    CM_Packages::sync_product( $pkg_id );
+                }
             }
         }
     }

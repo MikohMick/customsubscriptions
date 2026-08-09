@@ -3,7 +3,7 @@
  * Plugin Name: Custom Memberships
  * Plugin URI:  https://github.com/MikohMick/customsubscriptions
  * Description: Membership management with session tracking, WooCommerce checkout, REST API, and automated renewal emails.
- * Version:     1.0.0
+ * Version:     1.1.0
  * Author:      MikohMick
  * Text Domain: custom-memberships
  * Requires at least: 6.0
@@ -13,17 +13,19 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'CM_VERSION', '1.0.0' );
+define( 'CM_VERSION', '1.1.0' );
 define( 'CM_PLUGIN_FILE', __FILE__ );
 define( 'CM_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'CM_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'CM_TABLE_PACKAGES', $GLOBALS['wpdb']->prefix . 'cm_packages' );
-define( 'CM_TABLE_MEMBERS',  $GLOBALS['wpdb']->prefix . 'cm_members' );
-define( 'CM_TABLE_API_KEYS', $GLOBALS['wpdb']->prefix . 'cm_api_keys' );
+define( 'CM_TABLE_CATEGORIES', $GLOBALS['wpdb']->prefix . 'cm_categories' );
+define( 'CM_TABLE_PACKAGES',   $GLOBALS['wpdb']->prefix . 'cm_packages' );
+define( 'CM_TABLE_MEMBERS',    $GLOBALS['wpdb']->prefix . 'cm_members' );
+define( 'CM_TABLE_API_KEYS',   $GLOBALS['wpdb']->prefix . 'cm_api_keys' );
 
 // Autoload includes.
 foreach ( [
     'class-database',
+    'class-categories',
     'class-packages',
     'class-memberships',
     'class-woocommerce',
@@ -49,6 +51,12 @@ function cm_init() {
         return;
     }
 
+    // Run schema upgrades when the plugin version changes (updates without re-activation).
+    if ( get_option( 'cm_db_version' ) !== CM_VERSION ) {
+        CM_Database::install();
+    }
+
+    CM_Categories::init();
     CM_Packages::init();
     CM_Memberships::init();
     CM_WooCommerce::init();

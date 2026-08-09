@@ -63,7 +63,8 @@ class CM_Frontend {
             'subtitle' => '',
         ], $atts, 'membership_signup' );
 
-        $packages = CM_Packages::get_all( true );
+        $categories = CM_Categories::get_with_packages( true );
+        $has_plans  = ! empty( $categories );
 
         ob_start();
         ?>
@@ -137,30 +138,88 @@ class CM_Frontend {
                     <?php wp_nonce_field( 'cm_frontend', 'cm_nonce_step2' ); ?>
                     <input type="hidden" id="cm_step1_data" name="cm_step1_data" value="">
 
-                    <?php if ( empty( $packages ) ) : ?>
+                    <?php if ( ! $has_plans ) : ?>
                         <p class="cm-notice cm-notice--info">
                             <?php esc_html_e( 'No membership plans are available at this time. Please check back later.', 'custom-memberships' ); ?>
                         </p>
                     <?php else : ?>
-                        <p class="cm-plans-intro"><?php esc_html_e( 'Select the plan that works best for you:', 'custom-memberships' ); ?></p>
-                        <div class="cm-plans" role="radiogroup" aria-label="<?php esc_attr_e( 'Membership plans', 'custom-memberships' ); ?>">
-                            <?php foreach ( $packages as $pkg ) : ?>
-                                <label class="cm-plan" for="cm_package_<?php echo esc_attr( $pkg->id ); ?>">
-                                    <input type="radio" name="cm_package_id"
-                                           id="cm_package_<?php echo esc_attr( $pkg->id ); ?>"
-                                           value="<?php echo esc_attr( $pkg->id ); ?>">
-                                    <span class="cm-plan__text">
-                                        <span class="cm-plan__name"><?php echo esc_html( $pkg->name ); ?></span>
-                                        <span class="cm-plan__meta">
-                                            <?php echo esc_html( CM_Packages::sessions_label( $pkg->sessions ) ); ?>
-                                            &mdash;
-                                            <?php echo wp_kses_post( wc_price( $pkg->price ) ); ?>
+                        <p class="cm-plans-intro">
+                            <?php esc_html_e( 'Choose a category, then pick one plan to continue.', 'custom-memberships' ); ?>
+                        </p>
+
+                        <div class="cm-accordion">
+                            <?php foreach ( $categories as $index => $cat ) : ?>
+                                <?php
+                                $panel_id  = 'cm-cat-panel-' . (int) $cat->id . '-' . $index;
+                                $header_id = 'cm-cat-header-' . (int) $cat->id . '-' . $index;
+                                ?>
+                                <div class="cm-accordion__item" data-category="<?php echo esc_attr( $cat->id ); ?>">
+                                    <button type="button"
+                                            class="cm-accordion__header"
+                                            id="<?php echo esc_attr( $header_id ); ?>"
+                                            aria-expanded="false"
+                                            aria-controls="<?php echo esc_attr( $panel_id ); ?>">
+                                        <span class="cm-accordion__heading">
+                                            <span class="cm-accordion__title"><?php echo esc_html( $cat->name ); ?></span>
+                                            <?php if ( ! empty( $cat->subtitle ) ) : ?>
+                                                <span class="cm-accordion__subtitle"><?php echo esc_html( $cat->subtitle ); ?></span>
+                                            <?php endif; ?>
                                         </span>
-                                        <?php if ( $pkg->description ) : ?>
-                                            <span class="cm-plan__desc"><?php echo esc_html( $pkg->description ); ?></span>
+                                        <span class="cm-accordion__right">
+                                            <span class="cm-accordion__selected" hidden></span>
+                                            <span class="cm-accordion__icon" aria-hidden="true"></span>
+                                        </span>
+                                    </button>
+
+                                    <div class="cm-accordion__panel"
+                                         id="<?php echo esc_attr( $panel_id ); ?>"
+                                         role="region"
+                                         aria-labelledby="<?php echo esc_attr( $header_id ); ?>"
+                                         hidden>
+
+                                        <?php if ( ! empty( $cat->description ) ) : ?>
+                                            <p class="cm-accordion__desc"><?php echo esc_html( $cat->description ); ?></p>
                                         <?php endif; ?>
-                                    </span>
-                                </label>
+
+                                        <div class="cm-plans">
+                                            <?php foreach ( $cat->packages as $pkg ) : ?>
+                                                <?php $perks = CM_Packages::perks_list( $pkg->perks ?? '' ); ?>
+                                                <label class="cm-plan" for="cm_package_<?php echo esc_attr( $pkg->id ); ?>">
+                                                    <input type="checkbox"
+                                                           class="cm-plan__check"
+                                                           name="cm_package_id"
+                                                           id="cm_package_<?php echo esc_attr( $pkg->id ); ?>"
+                                                           value="<?php echo esc_attr( $pkg->id ); ?>"
+                                                           data-category="<?php echo esc_attr( $cat->id ); ?>"
+                                                           data-name="<?php echo esc_attr( $pkg->name ); ?>">
+                                                    <span class="cm-plan__text">
+                                                        <span class="cm-plan__name">
+                                                            <?php echo esc_html( $pkg->name ); ?>
+                                                            <?php if ( ! empty( $pkg->highlight ) ) : ?>
+                                                                <span class="cm-plan__badge"><?php esc_html_e( 'Most Popular', 'custom-memberships' ); ?></span>
+                                                            <?php endif; ?>
+                                                        </span>
+                                                        <span class="cm-plan__meta">
+                                                            <?php echo esc_html( CM_Packages::sessions_label( $pkg->sessions, $pkg->session_unit ?? 'Session' ) ); ?>
+                                                            &mdash;
+                                                            <?php echo wp_kses_post( wc_price( $pkg->price ) ); ?>
+                                                        </span>
+                                                        <?php if ( $perks ) : ?>
+                                                            <span class="cm-plan__perks">
+                                                                <?php foreach ( $perks as $perk ) : ?>
+                                                                    <span class="cm-plan__perk"><?php echo esc_html( $perk ); ?></span>
+                                                                <?php endforeach; ?>
+                                                            </span>
+                                                        <?php endif; ?>
+                                                        <?php if ( ! empty( $pkg->description ) ) : ?>
+                                                            <span class="cm-plan__desc"><?php echo esc_html( $pkg->description ); ?></span>
+                                                        <?php endif; ?>
+                                                    </span>
+                                                </label>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    </div>
+                                </div>
                             <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
@@ -169,7 +228,7 @@ class CM_Frontend {
                         <button type="button" class="cm-btn cm-btn--ghost" id="cm-back-btn">
                             &larr; <?php esc_html_e( 'Back', 'custom-memberships' ); ?>
                         </button>
-                        <button type="submit" class="cm-btn cm-btn--primary" <?php echo empty( $packages ) ? 'disabled' : ''; ?>>
+                        <button type="submit" class="cm-btn cm-btn--primary" <?php echo $has_plans ? '' : 'disabled'; ?>>
                             <?php esc_html_e( 'Proceed to Checkout', 'custom-memberships' ); ?> &rarr;
                         </button>
                     </div>

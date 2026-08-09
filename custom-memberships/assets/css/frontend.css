@@ -225,40 +225,147 @@
   to { transform: rotate(360deg); }
 }
 
-/* ── Plans — simple radio list ──────────────────────────────────── */
+/* ── Plans intro ────────────────────────────────────────────────── */
 .cm-plans-intro {
   margin: 0 0 14px;
   font-size: .9rem;
   color: var(--cm-text-light);
 }
 
-.cm-plans {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+/* ── Accordion (categories) ─────────────────────────────────────── */
+.cm-accordion {
   border: 1.5px solid var(--cm-border);
   border-radius: var(--cm-radius);
   overflow: hidden;
+}
+
+.cm-accordion__item + .cm-accordion__item {
+  border-top: 1px solid var(--cm-border);
+}
+
+.cm-accordion__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--cm-font);
+  color: var(--cm-text);
+  transition: background var(--cm-transition);
+}
+.cm-accordion__header:hover {
+  background: color-mix(in srgb, var(--cm-accent-dark) 4%, transparent);
+}
+.cm-accordion__header:focus-visible {
+  outline: 2px solid var(--cm-accent-dark);
+  outline-offset: -2px;
+}
+
+.cm-accordion__item--open > .cm-accordion__header {
+  background: color-mix(in srgb, var(--cm-accent-dark) 6%, transparent);
+}
+
+.cm-accordion__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cm-accordion__title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--cm-accent-dark);
+}
+
+.cm-accordion__subtitle {
+  font-size: .8rem;
+  color: var(--cm-text-light);
+}
+
+.cm-accordion__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cm-accordion__selected {
+  font-size: .75rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--cm-accent-dark);
+  padding: 3px 10px;
+  border-radius: 100px;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chevron */
+.cm-accordion__icon {
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--cm-text-light);
+  border-bottom: 2px solid var(--cm-text-light);
+  transform: rotate(45deg);
+  transition: transform var(--cm-transition);
+  margin-bottom: 3px;
+}
+.cm-accordion__item--open .cm-accordion__icon {
+  transform: rotate(-135deg);
+  margin-bottom: -3px;
+}
+
+.cm-accordion__panel {
+  padding: 4px 18px 18px;
+}
+.cm-accordion__panel[hidden] { display: none; }
+
+.cm-accordion__desc {
+  margin: 0 0 12px;
+  font-size: .83rem;
+  color: var(--cm-text-light);
+}
+
+/* ── Plans (inside a category panel) ────────────────────────────── */
+.cm-plans {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .cm-plan {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   cursor: pointer;
-  border-bottom: 1px solid var(--cm-border);
-  transition: background var(--cm-transition);
+  border: 1.5px solid var(--cm-border);
+  border-radius: var(--cm-radius);
+  background: var(--cm-bg);
+  transition: border-color var(--cm-transition), background var(--cm-transition);
 }
-.cm-plan:last-child { border-bottom: none; }
-.cm-plan:hover { background: color-mix(in srgb, var(--cm-accent-dark) 4%, transparent); }
+.cm-plan:hover {
+  border-color: color-mix(in srgb, var(--cm-accent-dark) 45%, var(--cm-border));
+}
 
-/* Native radio — visible and styled simply */
-.cm-plan input[type="radio"] {
-  margin: 3px 0 0;
+.cm-plan--selected {
+  border-color: var(--cm-accent-dark);
+  background: color-mix(in srgb, var(--cm-accent-dark) 6%, transparent);
+}
+
+.cm-plan__check {
+  margin: 2px 0 0;
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
+  width: 17px;
+  height: 17px;
   accent-color: var(--cm-accent-dark);
   cursor: pointer;
 }
@@ -266,14 +373,30 @@
 .cm-plan__text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   line-height: 1.4;
+  min-width: 0;
 }
 
 .cm-plan__name {
   font-weight: 600;
   font-size: .95rem;
   color: var(--cm-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cm-plan__badge {
+  font-size: .65rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--cm-accent);
+  padding: 2px 8px;
+  border-radius: 100px;
 }
 
 .cm-plan__meta {
@@ -281,11 +404,32 @@
   color: var(--cm-text-light);
 }
 
-/* Price inherits WooCommerce's wc-price span — keep it inline */
+/* Price inherits WooCommerce's markup — keep it inline and solid */
 .cm-plan__meta .woocommerce-Price-amount,
 .cm-plan__meta .amount {
   color: var(--cm-text);
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.cm-plan__perks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 3px;
+}
+
+.cm-plan__perk {
+  font-size: .8rem;
+  color: var(--cm-text-light);
+  padding-left: 16px;
+  position: relative;
+}
+.cm-plan__perk::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--cm-accent-dark);
+  font-weight: 700;
 }
 
 .cm-plan__desc {
@@ -294,13 +438,11 @@
   margin-top: 2px;
 }
 
-/* Highlight selected row */
-.cm-plan:has(input:checked) {
-  background: color-mix(in srgb, var(--cm-accent-dark) 6%, transparent);
-}
-
 /* ── Responsive ─────────────────────────────────────────────────── */
 @media (max-width: 480px) {
   .cm-actions--split { flex-direction: column-reverse; gap: 10px; }
   .cm-btn { width: 100%; }
+  .cm-accordion__header { padding: 14px; }
+  .cm-accordion__panel { padding: 4px 14px 14px; }
+  .cm-accordion__selected { max-width: 100px; }
 }
