@@ -1,0 +1,20 @@
+---
+# cPanel Git Version Control deployment.
+#
+# Runs when you press "Deploy HEAD Commit" in cPanel > Git Version Control,
+# or when you run `/usr/local/cpanel/3rdparty/bin/git ...` deploy hooks.
+#
+# SETUP: replace CPANELUSER below with your actual cPanel username.
+# If WordPress is not in public_html (e.g. it lives in a subdomain folder),
+# adjust the path to match.
+#
+# Note: this copies files in but does not remove files deleted from the repo.
+# If a release ever removes a plugin file, delete the target directory in
+# File Manager first, then deploy.
+
+deployment:
+  tasks:
+    - export PLUGINDIR=/home/CPANELUSER/public_html/wp-content/plugins/custom-memberships
+    - /bin/mkdir -p $PLUGINDIR
+    - /bin/cp -R custom-memberships/* $PLUGINDIR/
+    - /bin/chmod -R 755 $PLUGINDIR
